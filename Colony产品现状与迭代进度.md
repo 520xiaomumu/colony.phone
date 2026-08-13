@@ -30,3 +30,4 @@
 |---|---|---|---|---|
 | 0 | 建门禁 tests/gate.mjs + 本现状文档 | 工具/文档 | 门禁初跑如期红在 I1×6 + I6（记录待修事实） | 红（by design） |
 | 1 | P0-1 血统同步 | 页首注释+kmeta（非 stem 文本，hash 不变） | 补 petri:plugin-manager v1；ui-shell 版本 1→2；两份记录一致 | I1–I5 绿；I6 仍红（下一刀的锁定测试） |
+| 2 | P2-2 垫片注入健壮化 | stem（core+宿主）；基准 `14121d04`→`141c2928` | 新增 core.injectAfterHead（零 DOM 沉 core，第 3 条）；RT.mount 改消费之，miniapp 无 `<head>` 不再静默丢 SDK | 全绿（I6 转绿）+ 自检绿 |

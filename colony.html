@@ -134,7 +134,7 @@ gap:10px}
 <!--COLONY-LINEAGE {
  "gen": 1,
  "parentStemHash": null,
- "stemHash": "14121d04",
+ "stemHash": "141c2928",
  "note": "build",
  "blocks": [
   {
@@ -182,11 +182,11 @@ gap:10px}
 }-->
 <div id="colony-root"></div>
 <script id="stem-kmeta">
-window.__STEM_HASH="14121d04";
+window.__STEM_HASH="141c2928";
 window.__LINEAGE={
  "gen": 1,
  "parentStemHash": null,
- "stemHash": "14121d04",
+ "stemHash": "141c2928",
  "note": "build",
  "blocks": [
   {
@@ -246,6 +246,14 @@ window.__LINEAGE={
   core.hash = function (s) { s = String(s == null ? '' : s); let h = 5381; for (let i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0; return ('00000000' + h.toString(16)).slice(-8);
        };
   core.norm = function (code) { return String(code == null ? '' : code).replace(/^\s*\n/, '').replace(/\s+$/, ''); };
+  core.injectAfterHead = function (html, inject) { // SDK 垫片注入(修宪#1): 有 <head> 注其后; 无 <head> 则造头兜底 — miniapp 缺 <head> 不再静默丢垫片(window.colony 必在)
+    html = String(html == null ? '' : html);
+    const m = /<head(\s[^>]*)?>/i.exec(html);
+    if (m) { const at = m.index + m[0].length; return html.slice(0, at) + inject + html.slice(at); }
+    const h = /<html(\s[^>]*)?>/i.exec(html);
+    if (h) { const at = h.index + h[0].length; return html.slice(0, at) + '<head>' + inject + '</head>' + html.slice(at); }
+    return '<head>' + inject + '</head>' + html;
+  };
 
   /* ── 块文本 ⇄ 结构 ── */
   core.parseBlock = function (text) {
@@ -618,7 +626,7 @@ window.__LINEAGE={
       if (opts.iframeAttrs) for (const k in opts.iframeAttrs) { try { f.setAttribute(k, String(opts.iframeAttrs[k])); } catch (e) { } } // 任意 iframe 属性(allow 麦克风/剪贴板等)同归调用方
       const chan = 'ad-' + Math.random().toString(36).slice(2, 8);
       const shim = L.services['runtime-shim']; // 眼手 iframe 侧随 petri:agent 走(修订#8): 提供者在场则拼入; 挂载时快照, 提供者后来卸载不回溯已挂帧
-      f.srcdoc = String(opts.code).replace(/<head(\s[^>]*)?>/i, m => m + '<' + SCR + '>' + SDK.bootstrap(chan, opts.context || {}) + ((shim && shim.api && typeof shim.api.js === 'string') ? shim.api.js : '') + '</' + SCR + '>');
+      f.srcdoc = core.injectAfterHead(String(opts.code), '<' + SCR + '>' + SDK.bootstrap(chan, opts.context || {}) + ((shim && shim.api && typeof shim.api.js === 'string') ? shim.api.js : '') + '</' + SCR + '>'); // 无 <head> 也必注(core.injectAfterHead 兜底)
       (opts.host || document.body).appendChild(f);
       let iseq = 0; const iwait = {};
       const onMsg = e => {
