@@ -149,7 +149,7 @@ gap:10px}
   },
   {
    "id": "petri:bridge",
-   "version": 1,
+   "version": 2,
    "dirty": false
   },
   {
@@ -201,7 +201,7 @@ window.__LINEAGE={
   },
   {
    "id": "petri:bridge",
-   "version": 1,
+   "version": 2,
    "dirty": false
   },
   {
@@ -3084,6 +3084,7 @@ const relayUsable = async (url) => LOOPBACK_RE.test(url) && typeof window !== 'u
 /* ===========================================================================
  * @module      Foundation.Net
  * @summary     网络出口 + 按 provider 的 CORS 代理 + 重试 + 超时 + 回环中继(本地模型)
+ * @sibling     petri:bridge 另有精简版(无代理/无重试, 面向本机回环) — 孤儿冗余属刻意(宪法第9条), 语义不同勿盲目互抄
  * @publicAPI   fetch
  * =========================================================================== */
 const Net = (() => {
@@ -4575,7 +4576,7 @@ return { api, dispose() { } };
 })
 </script>
 <script type="colony/petri" data-id="petri:bridge">
-/*BLOCK*/{"id":"petri:bridge","name":"agent桥接","version":1,"after":["petri:ui-shell","petri:agent"],"requires":[],"provides":["bridge"],"category":"feature","degrade":"缺席时群聊只有内置 agent","sdk":["bridge.members","bridge.chat"],"providesConditional":["llm"]}/*CODE*/
+/*BLOCK*/{"id":"petri:bridge","name":"agent桥接","version":2,"after":["petri:ui-shell","petri:agent"],"requires":[],"provides":["bridge"],"category":"feature","degrade":"缺席时群聊只有内置 agent","sdk":["bridge.members","bridge.chat"],"providesConditional":["llm"]}/*CODE*/
 (function (ctx) {
   /* 数据自报: 桥接的显性记录 → 次元口袋按归属聚合(只声明块真实写入的 key) */
   if (ctx.kv) ctx.kv.set('datamap:petri:bridge', {
@@ -4616,6 +4617,7 @@ return { api, dispose() { } };
  * @module      Foundation.Net
  * @summary     网络出口 + 超时(bridge 连 localhost/内网, 不做 CORS 代理, 无重试——瞬时错误由 BridgeClient 长轮询/接入器退避各自兜)。
  *              聊天流由 EventSource(信箱档)/ Endpoints 内部 SSE 解析(直连档)各自处理, 此处不含 SSE。
+ * @sibling     petri:ai 另有全功能版(CORS 代理/重试/回环中继) — 孤儿冗余属刻意(宪法第9条), 语义不同勿盲目互抄
  * @publicAPI   fetch
  * =========================================================================== */
 const Net = (() => {
@@ -4891,6 +4893,7 @@ const BridgeClient = (() => {
  * @summary     浏览器插件中继客户端(与插件包 cs.js 协议对应; 插件源码在 colony.workflow/plugin/, 本仓无副本)。
  *              页面 fetch 不到的本机端点(无 CORS)经插件 background 代拉;
  *              插件缺席时诚实报错并给安装指引 — 不静默、不假成功。
+ * @sibling     petri:ai 有本模块的裁剪副本(present 带 5s 短缓存) — 孤儿冗余属刻意(宪法第9条), 协议改动请两头对照
  * @publicAPI   present, call, stream
  * =========================================================================== */
 const Relay = (() => {
