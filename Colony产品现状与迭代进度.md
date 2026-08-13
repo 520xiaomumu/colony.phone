@@ -32,3 +32,4 @@
 | 1 | P0-1 血统同步 | 页首注释+kmeta（非 stem 文本，hash 不变） | 补 petri:plugin-manager v1；ui-shell 版本 1→2；两份记录一致 | I1–I5 绿；I6 仍红（下一刀的锁定测试） |
 | 2 | P2-2 垫片注入健壮化 | stem（core+宿主）；基准 `14121d04`→`141c2928` | 新增 core.injectAfterHead（零 DOM 沉 core，第 3 条）；RT.mount 改消费之，miniapp 无 `<head>` 不再静默丢 SDK | 全绿（I6 转绿）+ 自检绿 |
 | 3 | P1-1 idbStore.list 单事务批量 | stem（宿主）；基准 `141c2928`→`369b8af8` | getAllKeys+getAll 同事务对齐取回，前缀内存过滤；消灭每键一事务的 N+1（旧机可跑，支柱三） | 全绿 + 自检绿 |
+| 4 | P2-1+P3-1 PANEL 源码查看/下载定时 | stem（宿主）；基准 `369b8af8`→`295b382d` | 源码查看改 Blob 新页（去废弃 document.write，防弹窗拦截 null 崩）；revokeObjectURL 800ms→60s | 全绿 + 自检绿 |

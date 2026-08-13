@@ -134,7 +134,7 @@ gap:10px}
 <!--COLONY-LINEAGE {
  "gen": 1,
  "parentStemHash": null,
- "stemHash": "369b8af8",
+ "stemHash": "295b382d",
  "note": "build",
  "blocks": [
   {
@@ -182,11 +182,11 @@ gap:10px}
 }-->
 <div id="colony-root"></div>
 <script id="stem-kmeta">
-window.__STEM_HASH="369b8af8";
+window.__STEM_HASH="295b382d";
 window.__LINEAGE={
  "gen": 1,
  "parentStemHash": null,
- "stemHash": "369b8af8",
+ "stemHash": "295b382d",
  "note": "build",
  "blocks": [
   {
@@ -790,7 +790,7 @@ window.__LINEAGE={
     download(name, content) {
       const url = URL.createObjectURL(new Blob([content], { type: 'text/html;charset=utf-8' }));
       const a = document.createElement('a'); a.href = url; a.download = name; a.click();
-      setTimeout(() => URL.revokeObjectURL(url), 800);
+      setTimeout(() => URL.revokeObjectURL(url), 60000); // 大蜕皮产物在慢盘/手机上 800ms 可能还没开始写盘就被撤销(修宪#1 放宽)
     },
     refreshPanel() { if (PANEL.visible) PANEL.render(PANEL.host); },
     openPanel() { // 复用真 Stem PANEL 作浮层(ui-shell 等无 code 块时的 Petri 管理入口; 绝不另写一套 UI)
@@ -856,7 +856,7 @@ window.__LINEAGE={
             };
             inp.click();
           }
-          else if (act === 'src') { const w = window.open('about:blank'); w.document.write('<pre>' + escHtml(K.readSource()) + '</pre>'); }
+          else if (act === 'src') { const u = URL.createObjectURL(new Blob([K.readSource()], { type: 'text/plain;charset=utf-8' })); window.open(u); setTimeout(() => URL.revokeObjectURL(u), 60000); } // Blob 新页(text/plain 原样呈现)替代已废弃 document.write; 弹窗被拦也不再对 null 解引用
           PANEL.render(PANEL.host);
         } catch (e) { alert(e.message); PANEL.render(PANEL.host); }
       });
