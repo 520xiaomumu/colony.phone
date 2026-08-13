@@ -169,7 +169,7 @@ gap:10px}
   },
   {
    "id": "petri:ui-shell",
-   "version": 2,
+   "version": 3,
    "dirty": false
   },
   {
@@ -221,7 +221,7 @@ window.__LINEAGE={
   },
   {
    "id": "petri:ui-shell",
-   "version": 2,
+   "version": 3,
    "dirty": false
   },
   {
@@ -8656,7 +8656,7 @@ const Brain = (() => {
 })
 </script>
 <script type="colony/petri" data-id="petri:ui-shell">
-/*BLOCK*/{"id":"petri:ui-shell","name":"界面设计","version":2,"after":[],"requires":[],"provides":["ui","apps"],"category":"ui","degrade":"缺席时stem兜底页接管","sdk":["store.get","store.set"]}/*CODE*/
+/*BLOCK*/{"id":"petri:ui-shell","name":"界面设计","version":3,"after":[],"requires":[],"provides":["ui","apps"],"category":"ui","degrade":"缺席时stem兜底页接管","sdk":["store.get","store.set"]}/*CODE*/
 (function (ctx) {
   /* 数据自报: 界面的显性记录 → 次元口袋按归属聚合 */
   if (ctx.kv) ctx.kv.set('datamap:petri:ui-shell', {
@@ -8699,7 +8699,7 @@ const Brain = (() => {
     "\n.page { position: absolute; inset: 0; bottom: var(--shell-bottom-inset); display: none; flex-direction: column; overflow: hidden; }" +
     "\n.page.active { display: flex; }" +
     "\n#page-apps { bottom: 0; padding: 16px 12px calc(var(--shell-bottom-inset) + 14px); overflow: auto;" +
-    " background: linear-gradient(135deg, rgba(8,14,26,.5), rgba(0,0,0,.22)), var(--shell-wallpaper, url(https://picsum.photos/1920/1080?random=2026)) center/cover no-repeat fixed; }" +
+    " background: linear-gradient(135deg, rgba(8,14,26,.5), rgba(0,0,0,.22)), var(--shell-wallpaper, radial-gradient(120% 90% at 78% 8%, #16250f 0%, #0c1420 48%, #05070a 100%)) center/cover no-repeat fixed; }" + // 出厂壁纸=本地渐变(断网可活, 支柱三); 联网随机壁纸是用户主动动作(🖼/换壁纸)
     "\n.apps-grid { position: relative; display: block; min-height: calc(100% - 4px); }" +
     "\n/* 桌面图标(指针拖拽: 触摸鼠标通吃; touch-action:none 防浏览器把拖动当滚动) */" +
     "\n.app-card, .desktop-folder { position: absolute; width: 92px; height: 104px; padding: 8px 6px; border: 1px solid transparent; border-radius: 8px;" +
@@ -9281,7 +9281,7 @@ const Brain = (() => {
     img.onerror = () => toast('壁纸加载失败，已保留当前壁纸');
     img.src = url;
   }
-  async function applyWallpaper() { const v = await ctx.kv.get('settings:ui.wallpaper'); if (v && v.url) loadWallpaper(v.url); else refreshWallpaper(); }
+  async function applyWallpaper() { const v = await ctx.kv.get('settings:ui.wallpaper'); if (v && v.url) loadWallpaper(v.url); } // 未设壁纸=本地渐变兜底(CSS 缺省), 首启不再默认联网拉图 — 断网可活; 🖼/换壁纸仍随点随换
   async function refreshWallpaper() { loadWallpaper(randomWallpaperUrl(), { save: true, source: 'picsum', toast: '已换桌面壁纸' }); }
   $('win-refresh-wallpaper').onclick = refreshWallpaper;
   $('win-custom-wallpaper').onclick = async () => {
