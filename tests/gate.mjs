@@ -130,7 +130,7 @@ if (process.argv.includes('--self-test')) {
   const cases = [
     ['删一块血统', html.replace(/\{\s*"id":\s*"petri:workflow",\s*"version":\s*\d+,\s*"dirty":\s*(?:false|true)\s*\}\s*(,?)/, '')],
     ['篡改kmeta哈希', html.replace(/__STEM_HASH="[0-9a-f]{8}"/, '__STEM_HASH="deadbeef"')],
-    ['篡改块版本', html.replace('"id":"petri:porter","name":"次元口袋","version":1', '"id":"petri:porter","name":"次元口袋","version":9')],
+    ['篡改块版本', html.replace(/("id":"petri:[\w-]+","name":"[^"]*","version":)(\d+)/, (m, p1) => p1 + '99')], // 命中首个紧凑 manifest(血统记录是带空格的 pretty JSON, 不会误中)
   ];
   let broken = 0;
   for (const [name, bad] of cases) {

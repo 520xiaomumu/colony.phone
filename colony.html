@@ -164,7 +164,7 @@ gap:10px}
   },
   {
    "id": "petri:porter",
-   "version": 1,
+   "version": 2,
    "dirty": false
   },
   {
@@ -216,7 +216,7 @@ window.__LINEAGE={
   },
   {
    "id": "petri:porter",
-   "version": 1,
+   "version": 2,
    "dirty": false
   },
   {
@@ -7409,7 +7409,7 @@ const Brain = (() => {
 })
 </script>
 <script type="colony/petri" data-id="petri:porter">
-/*BLOCK*/{"id":"petri:porter","name":"次元口袋","version":1,"after":["petri:ui-shell"],"requires":["ui","apps"],"provides":["porter"],"category":"feature","degrade":"无 ui 时 headless 卡片/全屏口袋; 无 runtime 独立态自建 IDB 全功能; 离线快照自带数据层","sdk":["data.list","data.get","data.set","data.del","data.copy","data.cleanup","data.exportLayer","net.fetch","fs.status","fs.pickDir","fs.read","fs.write","fs.list","porter.reload"]}/*CODE*/
+/*BLOCK*/{"id":"petri:porter","name":"次元口袋","version":2,"after":["petri:ui-shell"],"requires":["ui","apps"],"provides":["porter"],"category":"feature","degrade":"无 ui 时 headless 卡片/全屏口袋; 无 runtime 独立态自建 IDB 全功能; 离线快照自带数据层","sdk":["data.list","data.get","data.set","data.del","data.copy","data.cleanup","data.exportLayer","net.fetch","fs.status","fs.pickDir","fs.read","fs.write","fs.list","porter.reload"]}/*CODE*/
 (function (ctx) {
   /* 刀U · 独立态存储根治: 脱离 Colony(无 runtime)时, stem 穿衣垫片给的 ctx.kv 是 localStorage(~5MB), 上传 base64 图片易撑爆配额。
      这里把 ctx.kv 整个换成自建 IndexedDB(GB 级), 内置一次性把旧 localStorage(petri.solo.<id>:kv:*)迁进来再清掉(不丢已传文件+腾空间)。Colony 内态不变。 */
@@ -8373,13 +8373,18 @@ const Brain = (() => {
         return ent.sort((a, b) => b.prefix.length - a.prefix.length);
       };
       const ownerOf = (ent, k) => { for (let i = 0; i < ent.length; i++) if (String(k).startsWith(ent[i].prefix)) return ent[i]; return null; };
+      let _scanC = null; // 全库扫描短时缓存(800ms): 口袋面板连续调 group/stat/list 复用同一趟; 本 API 的任何写操作 bust — 读读复用, 写后必新。缓存自包含在 makeDataAPI 内, 离线快照同享
+      const bust = () => { _scanC = null; };
       const scan = async (needFull) => { // 单趟全库: 每值只 stringify 一次(bytes/preview/全文检索共用), 无 q 不留全文 —— namespaces/stat/profile/list/cleanup 共用这一条管线
+        if (!needFull && _scanC && Date.now() - _scanC.at < 800) return _scanC.v;
         const all = await store.list(''), ent = await loadMap();
         const rows = all.map(e => {
           let s = ''; try { s = typeof e.value === 'string' ? e.value : JSON.stringify(e.value == null ? null : e.value); } catch (err) { }
           return { key: e.key, value: e.value, bytes: s.length, preview: s.slice(0, 120), full: needFull ? s : null, media: mediaKind(e.value), own: ownerOf(ent, e.key) };
         });
-        return { ent, rows };
+        const v = { ent, rows };
+        if (!needFull) _scanC = { at: Date.now(), v }; // 含全文的检索趟不缓存(省内存)
+        return v;
       };
       const cleanupPlan = async (a) => {
         const tier = (a && a.tier) || 'cache', sc = await scan();
@@ -8459,8 +8464,8 @@ const Brain = (() => {
           }).sort((x, y) => y.bytes - x.bytes) };
         },
         'data.get': async (a) => { const k = sv(a, 'key'); const value = await store.get(k); const o = ownerOf(await loadMap(), k); return { key: k, value, exists: value !== undefined, shape: (o && o.shape) || undefined }; }, // exists 显式区分"不存在"与"值为 undefined"(G-1); shape=声明的值形状(有才带)
-        'data.set': async (a) => { const k = sv(a, 'key'); if (!('value' in (a || {}))) throw new Error('data.set 需要 value(要写空值请显式传 value:null / "" / 0)'); await store.set(k, a.value); return { ok: true, key: k }; }, // 只堵"完全不传 value", 放行一切合法 falsy(G-1)
-        'data.del': async (a) => { const k = sv(a, 'key'); const existed = (await store.get(k)) !== undefined; await store.del(k); return { ok: true, key: k, existed, deleted: existed ? k : null }; }, // existed 如实报是否真删到(G-1)
+        'data.set': async (a) => { const k = sv(a, 'key'); if (!('value' in (a || {}))) throw new Error('data.set 需要 value(要写空值请显式传 value:null / "" / 0)'); await store.set(k, a.value); bust(); return { ok: true, key: k }; }, // 只堵"完全不传 value", 放行一切合法 falsy(G-1)
+        'data.del': async (a) => { const k = sv(a, 'key'); const existed = (await store.get(k)) !== undefined; await store.del(k); bust(); return { ok: true, key: k, existed, deleted: existed ? k : null }; }, // existed 如实报是否真删到(G-1)
         'data.copy': async (a) => { // 复制/搬运/备份: 值在库内直传, 不过调用方上下文(大应用/媒体不再"读出来再手抄回去")
           const from = sv(a, 'from'), to = sv(a, 'to');
           let v = await store.get(from);
@@ -8468,7 +8473,7 @@ const Brain = (() => {
           try { v = JSON.parse(JSON.stringify(v)); } catch (e) { }
           if (a && a.patch && v && typeof v === 'object' && !Array.isArray(v)) Object.assign(v, a.patch);
           if (/^miniapp:/.test(to) && v && typeof v === 'object') { v.id = to.slice(8); v.updatedAt = Date.now(); } // 应用记录: id 随键走, 不留旧 id 幽灵
-          await store.set(to, v);
+          await store.set(to, v); bust();
           return { ok: true, key: to, copied: from, bytes: bytesOf(v) };
         },
         'data.cleanup': async (a) => {
@@ -8477,6 +8482,7 @@ const Brain = (() => {
           const sel = a && Array.isArray(a.keys) ? new Set(a.keys) : null;   // 传 keys → 只清勾选的(仍限定在本档候选内, 防越权删); 不传 → 全清本档
           const todo = sel ? plan.items.filter(i => sel.has(i.key)) : plan.items;
           for (const it of todo) { try { await store.del(it.key); } catch (e) { } }
+          bust();
           const bytes = todo.reduce((s, i) => s + (i.bytes || 0), 0);
           return { ok: true, tier: plan.tier, deleted: todo.length, bytes, reload: plan.reload };
         }

@@ -7,8 +7,8 @@
 | 项 | 值 |
 |---|---|
 | 代际 | gen 1 |
-| Stem hash（当前基准） | `14121d04` |
-| 块清单 | petri:agent v2 · petri:ai v1 · petri:bridge v1 · petri:code v1 · petri:plugin-manager v1 · petri:porter v1 · petri:ui-shell v2 · petri:workflow v1 |
+| Stem hash（当前基准） | `295b382d`（初始 `14121d04`，修宪 #1 四刀演进，逐刀见台账） |
+| 块清单 | petri:agent v3 · petri:ai v1 · petri:bridge v1 · petri:code v1 · petri:plugin-manager v1 · petri:porter v2 · petri:ui-shell v3 · petri:workflow v1 |
 | 门禁 | `node tests/gate.mjs`（全量不变式）；`node tests/gate.mjs --self-test`（门自检守卫，第 6 条） |
 
 ## 修宪记录（第 4/5 条）
@@ -33,3 +33,4 @@
 | 2 | P2-2 垫片注入健壮化 | stem（core+宿主）；基准 `14121d04`→`141c2928` | 新增 core.injectAfterHead（零 DOM 沉 core，第 3 条）；RT.mount 改消费之，miniapp 无 `<head>` 不再静默丢 SDK | 全绿（I6 转绿）+ 自检绿 |
 | 3 | P1-1 idbStore.list 单事务批量 | stem（宿主）；基准 `141c2928`→`369b8af8` | getAllKeys+getAll 同事务对齐取回，前缀内存过滤；消灭每键一事务的 N+1（旧机可跑，支柱三） | 全绿 + 自检绿 |
 | 4 | P2-1+P3-1 PANEL 源码查看/下载定时 | stem（宿主）；基准 `369b8af8`→`295b382d` | 源码查看改 Blob 新页（去废弃 document.write，防弹窗拦截 null 崩）；revokeObjectURL 800ms→60s | 全绿 + 自检绿 |
+| 5 | porter scan 短时缓存 | petri:porter v1→2（血统同 bump） | makeDataAPI.scan 加 800ms 读缓存 + data.set/del/copy/cleanup 即时失效；含全文趟不缓存；离线快照同享。门自检"篡改块版本"用例改通用正则（防版本 bump 失配） | 全绿 + 自检绿 |
