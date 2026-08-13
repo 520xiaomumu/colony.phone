@@ -35,3 +35,14 @@
 | 4 | P2-1+P3-1 PANEL 源码查看/下载定时 | stem（宿主）；基准 `369b8af8`→`295b382d` | 源码查看改 Blob 新页（去废弃 document.write，防弹窗拦截 null 崩）；revokeObjectURL 800ms→60s | 全绿 + 自检绿 |
 | 5 | porter scan 短时缓存 | petri:porter v1→2（血统同 bump） | makeDataAPI.scan 加 800ms 读缓存 + data.set/del/copy/cleanup 即时失效；含全文趟不缓存；离线快照同享。门自检"篡改块版本"用例改通用正则（防版本 bump 失配） | 全绿 + 自检绿 |
 | 6 | agent 落盘节流 | petri:agent v2→3（血统同 bump） | engine persist 尾沿节流（≤1 次/500ms，尾沿定时保证必写）；用户消息/异常/终态三类关键落点强制即写；消 IDB 写放大 | 全绿 + 自检绿 + 全块 parse 冒烟 |
+| 7 | ui-shell 离线壁纸 | petri:ui-shell v2→3（血统同 bump） | 出厂壁纸改本地渐变；首启不再默认联网拉 picsum；🖼/换壁纸仍为用户主动联网动作 | 全绿 + 自检绿 |
+
+## 本轮浏览器端到端验证记录（第 7 条：浏览器可验项由 agent 驱动验证）
+
+在 Chrome（http 服务 localhost:8321）实测，全部通过：
+1. 首启桌面为本地深色渐变壁纸（刀 7）；任务栏/开始菜单/agent 气泡正常。
+2. 开始菜单"所有 Petri"完整列出 8 块（刀 1 血统 + 装载正常）。
+3. **无 `<head>` 的 miniapp 导入后打开显示 "SDK OK"**——`window.colony` 注入成功（刀 2 关键验证）。
+4. 源码管理器禁用"界面设计"→ Stem 兜底页接管 →"查看可见源码"新开 blob: 标签页显示 `/*MOD-START:Stem*/` 起始的拼装源码（刀 4）→ 启用后桌面恢复。
+5. Console 确定性验证会话落盘：发消息（假 endpoint 触发错误路径）后 `chat.transcript.main` 含 `user|你好测试123` 与 error trace；F5 刷新后逐字节一致、UI 气泡可见（刀 6 强制落点生效）。
+6. Console 确定性验证 data.list：重复读 4ms→0.2ms（缓存生效约 20×）；data.set 后立即可见、data.del 后立即消失（缓存写即失效，无陈旧读）（刀 3+刀 5）。
