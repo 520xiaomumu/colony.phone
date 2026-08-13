@@ -34,3 +34,4 @@
 | 3 | P1-1 idbStore.list 单事务批量 | stem（宿主）；基准 `141c2928`→`369b8af8` | getAllKeys+getAll 同事务对齐取回，前缀内存过滤；消灭每键一事务的 N+1（旧机可跑，支柱三） | 全绿 + 自检绿 |
 | 4 | P2-1+P3-1 PANEL 源码查看/下载定时 | stem（宿主）；基准 `369b8af8`→`295b382d` | 源码查看改 Blob 新页（去废弃 document.write，防弹窗拦截 null 崩）；revokeObjectURL 800ms→60s | 全绿 + 自检绿 |
 | 5 | porter scan 短时缓存 | petri:porter v1→2（血统同 bump） | makeDataAPI.scan 加 800ms 读缓存 + data.set/del/copy/cleanup 即时失效；含全文趟不缓存；离线快照同享。门自检"篡改块版本"用例改通用正则（防版本 bump 失配） | 全绿 + 自检绿 |
+| 6 | agent 落盘节流 | petri:agent v2→3（血统同 bump） | engine persist 尾沿节流（≤1 次/500ms，尾沿定时保证必写）；用户消息/异常/终态三类关键落点强制即写；消 IDB 写放大 | 全绿 + 自检绿 + 全块 parse 冒烟 |

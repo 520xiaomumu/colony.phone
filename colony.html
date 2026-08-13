@@ -139,7 +139,7 @@ gap:10px}
  "blocks": [
   {
    "id": "petri:agent",
-   "version": 2,
+   "version": 3,
    "dirty": false
   },
   {
@@ -191,7 +191,7 @@ window.__LINEAGE={
  "blocks": [
   {
    "id": "petri:agent",
-   "version": 2,
+   "version": 3,
    "dirty": false
   },
   {
@@ -901,7 +901,7 @@ window.__LINEAGE={
 })(typeof window !== 'undefined' ? window : globalThis);
 </script>
 <script type="colony/petri" data-id="petri:agent">
-/*BLOCK*/{"id":"petri:agent","name":"全能 agent","version":2,"after":["petri:ui-shell","petri:ai"],"requires":["llm","ui","apps"],"provides":["agent"],"category":"feature","degrade":"llm 服务缺失时用内嵌 LLMLite 兜底(大脑区 ⚙ 配置); 均未配置则如实提示","sdk":["runtime.listFrames","runtime.invoke","runtime.snapshot","runtime.click","runtime.input","runtime.key","runtime.eval","runtime.screenshot","runtime.getShot","trace.query","agent.loop"],"sdkConditional":["ai.chat","ai.chatStream"]}/*CODE*/
+/*BLOCK*/{"id":"petri:agent","name":"全能 agent","version":3,"after":["petri:ui-shell","petri:ai"],"requires":["llm","ui","apps"],"provides":["agent"],"category":"feature","degrade":"llm 服务缺失时用内嵌 LLMLite 兜底(大脑区 ⚙ 配置); 均未配置则如实提示","sdk":["runtime.listFrames","runtime.invoke","runtime.snapshot","runtime.click","runtime.input","runtime.key","runtime.eval","runtime.screenshot","runtime.getShot","trace.query","agent.loop"],"sdkConditional":["ai.chat","ai.chatStream"]}/*CODE*/
 (function (ctx) {
   /* 数据自报: 本块 kv 归属 → 次元口袋按归属聚合(MAP 进 kv 后并入此声明) */
   if (ctx.kv) ctx.kv.set('datamap:petri:agent', {
@@ -1640,8 +1640,14 @@ window.__LINEAGE={
     const turnId = mkId('t_');   // 本轮身份: 缝合一轮一链 + 按轮裁剪历史
     _attachQueue = [];   // 清跨轮残留
     const seed = !!(opts && opts.seed); // 互动模式全能接话: content 是一次性情境引导, 不落盘 → 记录里只留它的回复, 不留"请接话"
-    const persist = () => S.set(chatKey(sid), hist).catch(e => console.warn('[agent] 会话落盘失败(S3悬案留痕):', e));   // 即时落盘; 失败不再无声
-    if (!seed) { hist.push({ role: 'user', content, turnId, ts: _tsNow() }); await persist(); } // ts: 群聊定序锚点
+    let _pT = null, _pAt = 0;   // 落盘节流(≤1次/500ms, 尾沿定时保证不丢): 长会话逐工具/逐轮全量重写整段历史是 IDB 写放大源
+    const _pFlush = () => { _pT = null; _pAt = Date.now(); return S.set(chatKey(sid), hist).catch(e => console.warn('[agent] 会话落盘失败(S3悬案留痕):', e)); };   // 失败不再无声
+    const persist = force => { // force=关键落点(用户消息/异常/终态)立即写; 其余合并, 尾沿定时保证 ≤500ms 内必落盘
+      if (force || Date.now() - _pAt >= 500) { if (_pT) { clearTimeout(_pT); _pT = null; } return _pFlush(); }
+      if (!_pT) _pT = setTimeout(_pFlush, 500 - (Date.now() - _pAt));
+      return Promise.resolve();
+    };
+    if (!seed) { hist.push({ role: 'user', content, turnId, ts: _tsNow() }); await persist(true); } // ts: 群聊定序锚点; 用户消息强制即写
     // 活 trace: push 一次, 后续原地 Object.assign 更新, onDelta 触发节流重绘
     let liveTrace = null;
     const newTrace = (patch) => { const t = Object.assign({ role: 'trace', turnId, traceId: mkId('tr_'), status: 'running', ts: Date.now() }, patch); hist.push(t); liveTrace = t; return t; };
@@ -1840,9 +1846,9 @@ window.__LINEAGE={
     } catch (e) {   // 中途崩不再静默: 变工具链里一条可见红行
       if (liveTrace && liveTrace.status === 'running') Object.assign(liveTrace, { status: 'error', ok: false, label: (liveTrace.label || '执行') + ' — 中断', summary: '✗ ' + e.message.slice(0, 120) });
       else newTrace({ kind: 'tool', name: '?', status: 'error', ok: false, label: '✗ 任务中断', summary: e.message.slice(0, 120), args: {} });
-      await persist(); _streamAnswer = ''; yield { type: 'error', message: e.message };
+      await persist(true); _streamAnswer = ''; yield { type: 'error', message: e.message };
     } finally {   // 双保险: 任何退出路径都不留 running 活行 — "显示在跑实际已停"的源头治理
-      if (liveTrace && liveTrace.status === 'running') { Object.assign(liveTrace, { status: 'done', ok: false, label: (liveTrace.label || '') + ' — 中断' }); await persist().catch(() => { }); }
+      if (liveTrace && liveTrace.status === 'running') { Object.assign(liveTrace, { status: 'done', ok: false, label: (liveTrace.label || '') + ' — 中断' }); await persist(true).catch(() => { }); }
     }
     // 按轮裁剪: 不按条数 slice(防截断链头), 保留最近 N 轮完整 turn
     const KEEP_TURNS = 40;
@@ -1853,7 +1859,7 @@ window.__LINEAGE={
       hist.splice(0, hist.length, ...kept);
     }
     try { await archiveTurnMedia(hist, turnId); } catch (e) { }
-    await persist();   // 终态落盘(含裁剪结果+媒体归档)
+    await persist(true);   // 终态落盘(含裁剪结果+媒体归档): 强制即写并清掉尾沿定时
     _streamAnswer = '';
     yield { type: 'turn-end' };
   }
