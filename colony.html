@@ -144,7 +144,7 @@ gap:10px}
   },
   {
    "id": "petri:ai",
-   "version": 1,
+   "version": 2,
    "dirty": false
   },
   {
@@ -196,7 +196,7 @@ window.__LINEAGE={
   },
   {
    "id": "petri:ai",
-   "version": 1,
+   "version": 2,
    "dirty": false
   },
   {
@@ -2934,7 +2934,7 @@ window.__LINEAGE={
 })
 </script>
 <script type="colony/petri" data-id="petri:ai">
-/*BLOCK*/{"id":"petri:ai","name":"AI 配置","version":1,"after":["petri:ui-shell"],"requires":[],"provides":["llm"],"category":"feature","degrade":"无","sdk":["ai.chat","ai.chatStream","ai.tts","ai.transcribe","ai.imagine","ai.video","ai.music","ai.models","ai.configure","ai.test"]}/*CODE*/
+/*BLOCK*/{"id":"petri:ai","name":"AI 配置","version":2,"after":["petri:ui-shell"],"requires":[],"provides":["llm"],"category":"feature","degrade":"无","sdk":["ai.chat","ai.chatStream","ai.tts","ai.transcribe","ai.imagine","ai.video","ai.music","ai.models","ai.configure","ai.test"]}/*CODE*/
 (function (ctx) {
   ctx.css("/* 设置表单组件库(v3 真身) — ai 是全量源; bridge 自带其用到的 6 类同名副本(孤儿完整), ui-shell 搭车此份(它缺席时设置区本就不在) */\n.settings-card { max-width: 680px; max-height: 86vh;" +
     " overflow-y: auto; }\n.settings-section { margin-bottom: 24px; }\n.settings-section + .settings-section { padding-top: 22px;" +
@@ -4418,12 +4418,14 @@ async function applySeed() { // 同指纹只播一次(不碾用户后改); 重�
   await Store.settings.set('ai.seedApplied', sig);
   changed();
 }
-async function saveSeedToBlock() { // 「打包配置版」: 种子写进本块源码覆盖层(saveBlock 热替换自己) → wrapBlock 直接出带配置的独立 Petri
+async function saveSeedToBlock(redact) { // 「打包配置版」: 种子写进本块源码覆盖层(saveBlock 热替换自己) → wrapBlock 直接出带配置的独立 Petri。redact=脱敏(流通安全第22条): 剥 apiKey 与测通台账(接收方没 Key, 留台账=徽章谎亮), local 协议的 'local' 占位非密钥保留
   const provs = await Settings.getProviders();
   if (!provs.length) return alert('还没有配置任何厂商');
   const activeId = await Settings.getActiveProviderId();
-  const seed = { providers: provs.map(p => { const c = { ...p }; delete c.id; return c; }), activeName: (provs.find(p => p.id === activeId) || {}).name || null };
-  if (!confirm('把 ' + provs.length + ' 个厂商的配置(含明文 API Key 与已测通台账)写进本块源码, 并导出自带配置的独立 Petri?\n\n对方导入并启用后拿来即用。\n⚠ 导出文件含明文 Key, 只给信任的人。')) return;
+  const seed = { providers: provs.map(p => { const c = { ...p }; delete c.id; if (redact && c.protocol !== 'local') { delete c.apiKey; delete c.verified; } return c; }), activeName: (provs.find(p => p.id === activeId) || {}).name || null };
+  if (!confirm(redact
+    ? '脱敏打包: 把 ' + provs.length + ' 个厂商的结构配置(端点/模型/任务模型/标注, 不含 API Key 与测通台账)写进本块源码并导出独立 Petri?\n\n对方导入后自行填 Key 并重新测通即可用, 文件可放心流通。'
+    : '把 ' + provs.length + ' 个厂商的配置(含明文 API Key 与已测通台账)写进本块源码, 并导出自带配置的独立 Petri?\n\n对方导入并启用后拿来即用。\n⚠ 导出文件含明文 Key, 只给信任的人。')) return;
   const b = ctx.stem.getBlock(ctx.id);
   const json = JSON.stringify(seed).replace(/</g, '\\u003c'); // 转义 <: 块源码不得含字面闭合脚本标签(validateCode 拒)
   const nc = b.code.replace(/const PROVIDER_SEED = \/\*⚘SEED\*\/[\s\S]*?\/\*⚘SEED\*\//, () => 'const PROVIDER_SEED = /*⚘SEED*/' + json + '/*⚘SEED*/'); // 替换函数防 Key 里的 $ 被当替换模式
@@ -4556,10 +4558,12 @@ const AI_SECTION = {
     const solo = ctx.stem.hash === 'solo'; // 独立模式源码只读, 打包不可用(导入回 Colony 后可用)
     el.innerHTML = '<label class="settings-label">服务商</label><div class="provider-bar"><div class="provider-chips" id="provider-chips"></div><button class="prov-add-btn" id="prov-add-btn" title="添加新厂商">+</button></div><div id="provider-detail">' +
       '</div>' +
-      '<div style="margin-top:10px;display:flex;gap:8px;align-items:center"><button class="icon-pill-btn" id="seed-pack"' + (solo ? ' disabled title="独立模式只读 — 导入回 Colony 后可打包"' : ' title="把全部厂商配置(含明文Key与点亮台账)写进本块源码并导出独立 Petri"') + '>💾 打包配置版</button>' +
-      '<span class="settings-hint">导出自带配置的 petri 文件, 别人导入启用后拿来即用(含明文 Key, 只给信任的人)</span></div>';
+      '<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="icon-pill-btn" id="seed-pack"' + (solo ? ' disabled title="独立模式只读 — 导入回 Colony 后可打包"' : ' title="把全部厂商配置(含明文Key与点亮台账)写进本块源码并导出独立 Petri"') + '>💾 打包配置版</button>' +
+      '<button class="icon-pill-btn" id="seed-pack-safe"' + (solo ? ' disabled title="独立模式只读 — 导入回 Colony 后可打包"' : ' title="同上但不含 API Key 与测通台账(端点/模型/标注保留), 可放心流通"') + '>🧱 脱敏打包(不含Key)</button>' +
+      '<span class="settings-hint">💾 含明文 Key, 只给信任的人 · 🧱 脱敏版不含 Key/台账, 可放心流通</span></div>';
     renderProviderChips(el);
-    const sp = el.querySelector('#seed-pack'); if (sp && !solo) sp.onclick = saveSeedToBlock;
+    const sp = el.querySelector('#seed-pack'); if (sp && !solo) sp.onclick = () => saveSeedToBlock(false);
+    const sps = el.querySelector('#seed-pack-safe'); if (sps && !solo) sps.onclick = () => saveSeedToBlock(true);
   },
 };
 const _ui = ctx.service('ui');
