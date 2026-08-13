@@ -110,6 +110,18 @@ function runChecks(html, label) {
     }
   }
 
+  /* I7 孤儿穿衣结构冒烟(第9条"有检查证实"的 node 可跑部分; 浏览器启动冒烟由所有者驱动 agent 验证):
+     每块 wrapBlock 产物必须 ① 含凭证块标签且 unwrap 无损往返 ② 含 COLONY-PETRI 印章 ③ 含独立模式垫片 */
+  for (const b of blocks) {
+    try {
+      const solo = core.wrapBlock({ manifest: b.manifest, code: b.code }, { stemHash: h, gen: comment.gen || 1 });
+      const back = core.unwrap(solo);
+      ok('I7.' + b.manifest.id + '.往返', back.length === 1 && back[0].manifest.id === b.manifest.id && back[0].code === core.norm(b.code), '穿衣后 unwrap 不还原');
+      ok('I7.' + b.manifest.id + '.印章', solo.includes('<!--COLONY-PETRI '));
+      ok('I7.' + b.manifest.id + '.垫片', solo.includes('data-stem-shim="1"'));
+    } catch (e) { fails.push('I7.' + b.manifest.id + ' — ' + e.message); }
+  }
+
   return report(label, fails);
 }
 
