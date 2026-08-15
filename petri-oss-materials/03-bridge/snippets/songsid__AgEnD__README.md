@@ -1,0 +1,218 @@
+<!-- MATERIAL source=https://github.com/songsid/AgEnD/blob/main/README.md stars=6 note=多 CLI 舰队 daemon -->
+
+<p align="center">
+  <h1 align="center">AgEnD</h1>
+  <p align="center">
+    <strong>Run a fleet of AI coding agents from your phone.</strong>
+  </p>
+  <p align="center">
+    <a href="https://songsid.github.io/AgEnD"><img src="https://img.shields.io/badge/Website-songsid.github.io/AgEnD-blue" alt="Website"></a>
+    <a href="https://www.npmjs.com/package/@songsid/agend"><img src="https://img.shields.io/npm/v/@songsid/agend" alt="npm"></a>
+    <a href="LICENSE"><img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License: MIT"></a>
+    <a href="https://nodejs.org"><img src="https://img.shields.io/badge/Node.js-%3E%3D%2020-green.svg" alt="Node.js >= 20"></a>
+  </p>
+</p>
+
+AgEnD (**Agent Engineering Daemon**) turns your Telegram or Discord into a command center for AI coding agents. One bot, multiple CLI backends, unlimited projects — each running as an independent session with crash recovery and zero babysitting.
+
+<p align="center">
+  <code>You → Telegram/Discord → AgEnD → Fleet of AI Agents → Results back to your phone</code>
+</p>
+
+[繁體中文](README.zh-TW.md) · [Documentation](docs/features.md) · [CLI Reference](docs/cli.md)
+
+---
+
+## Why AgEnD?
+
+| Without AgEnD | With AgEnD |
+|---|---|
+| Close the terminal, agent goes offline | Runs as a system service — survives reboots |
+| One terminal = one project | One bot, unlimited projects running in parallel |
+| Long-running sessions accumulate stale context | CLI auto-compact + crash recovery with context snapshots |
+| No idea what your agents are doing overnight | Daily cost reports + hang detection alerts |
+| Agents work in silos, can't coordinate | Peer-to-peer collaboration via MCP tools |
+| Runaway costs from unattended sessions | Per-instance daily spending limits with auto-pause |
+
+## Feature Highlights
+
+🚀 **Fleet Management** — One bot, N projects. Each Telegram Forum Topic is an isolated agent session.
+
+🔄 **Multi-Backend** — Claude Code, Codex, OpenCode, Kiro CLI, Antigravity CLI. Switch or mix freely.
+
+🤝 **Agent Collaboration** — Agents discover, wake, and message each other via MCP tools. A General Topic routes tasks to the right agent using natural language.
+
+📱 **Mobile Control** — Approve tool use, restart sessions, and manage your fleet from Telegram inline buttons.
+
+🛡️ **Autonomous & Safe** — Cost guards, hang detection, model failover, and crash recovery keep your fleet running without babysitting.
+
+⏰ **Persistent Schedules** — Cron-based tasks backed by SQLite. Survives restarts.
+
+🎤 **Voice Messages** — Talk to your agents with Groq Whisper transcription.
+
+📄 **HTML Chat Export** — Export any agent session as a self-contained HTML file for sharing or archiving.
+
+🪞 **Mirror Topic** — Cross-instance visibility. Watch another agent's work in real time from a separate topic.
+
+🛑 **Cancel Button** — Interrupt agent generation with a single tap. Inline button appears on every message; works across TG and Discord.
+
+📬 **Delivery Status** — See message delivery progress: 👀 received → ⏳ processing → ✅ done (or ❌ failed).
+
+🖥️ **Web Dashboard** — Live fleet monitoring in the browser with SSE updates and integrated chat UI.
+
+🔌 **Extensible** — Discord adapter, webhook notifications, health endpoint, external session support via IPC.
+
+👥 **Teams & Task Board** — Named groups for targeted broadcasting. Shared task board for multi-step work tracking across instances.
+
+📋 **Fleet Templates** — Define reusable fleet configurations. Deploy multi-instance setups with one command, each with its own git worktree.
+
+## Quick Start
+
+One-liner (macOS / Linux — installs Node.js via nvm + tmux + agend, then runs quickstart):
+
+```bash
+curl -fsSL https://songsid.github.io/AgEnD/install.sh | bash
+```
+
+Or install manually:
+
+```bash
+# Option A: One-line install (Linux / macOS / WSL)
+curl -fsSL https://songsid.github.io/AgEnD/install.sh | bash
+
+# Option B: Manual install
+npm install -g @songsid/agend    # 1. Install
+agend quickstart                # 2. Setup — bot token, backend, done
+agend fleet start               # 3. Launch your fleet 🎉
+```
+
+Open Telegram, send a message to your bot, and start coding from your phone.
+
+> **Discord?** `agend quickstart` supports Discord too — it's built in, no extra install needed. See [Discord setup guide](docs/features.md#discord-adapter-mvp).
+
+## How It Works
+
+```mermaid
+graph LR
+  You["You<br/>(Phone / PC)"] <-->|messages| Channel["Telegram / Discord<br/>/ Web UI"]
+  Channel <-->|routing| Daemon["AgEnD Daemon"]
+
+  subgraph Fleet
+    Daemon --> General["General<br/>Dispatcher"]
+    Daemon --> A["Instance A<br/>Claude Code<br/>Project X"]
+    Daemon --> B["Instance B<br/>Antigravity CLI<br/>Project Y"]
+    A <-.->|MCP Tools| B
+    General -.->|routes tasks| A
+    General -.->|routes tasks| B
+  end
+```
+
+1. **You send a message** to your Telegram/Discord bot
+2. Messages sent to the **General Topic** are interpreted and routed to the right agent. Messages to a specific topic go directly to that instance.
+3. **Agent instances** run in isolated tmux sessions, each with its own project and CLI backend
+4. **Agents collaborate** peer-to-peer via MCP tools — delegating tasks, sharing context, reporting results
+5. **Results flow back** to your chat. Permission requests arrive as inline buttons.
+
+## Supported Backends
+
+| Backend | Install | Auth |
+|---------|---------|------|
+| Claude Code | `curl -fsSL https://claude.ai/install.sh \| bash` | `claude` (OAuth) or `ANTHROPIC_API_KEY` |
+| OpenAI Codex | `npm i -g @openai/codex` | `codex` (ChatGPT login) or `OPENAI_API_KEY` |
+| Gemini CLI | `npm i -g @google/gemini-cli` | `gemini` (Google OAuth) ⚠️ Deprecated 2026-06-18 |
+| OpenCode | `curl -fsSL https://opencode.ai/install \| bash` | `opencode` (configure provider) |
+| Kiro CLI | `curl -fsSL https://cli.kiro.dev/install | bash` | `kiro-cli login` (AWS Builder ID) |
+| Antigravity CLI | `curl -fsSL https://antigravity.google/cli/install.sh \| bash` | `agy` (Google Sign-In) |
+| Grok Build | `curl -fsSL https://x.ai/cli/install.sh \| bash` | `grok` (x.ai OAuth device flow) |
+
+## Requirements
+
+- Node.js >= 20
+- tmux
+- One of the supported AI coding CLIs (installed and authenticated)
+- Telegram bot token ([@BotFather](https://t.me/BotFather)) or Discord bot token
+- Groq API key (optional, for voice)
+
+> **⚠️** All CLI backends run with `--dangerously-skip-permissions` (or equivalent). See [Security](docs/SECURITY.md).
+
+> **WSL (Windows Subsystem for Linux):** Fully supported. The install script auto-detects WSL and avoids using Windows `node.exe` from PATH. If you encounter PATH issues, add to `/etc/wsl.conf`:
+> ```ini
+> [interop]
+> appendWindowsPath=false
+> ```
+> Then restart WSL (`wsl --shutdown`). Install with: `curl -fsSL https://songsid.github.io/AgEnD/install.sh | bash`
+
+## Documentation
+
+- [Features](docs/features.md) — detailed feature documentation
+- [CLI Reference](docs/cli.md) — all commands and options
+- [Configuration](docs/configuration.md) — fleet.yaml complete reference
+- [Security](docs/SECURITY.md) — trust model and hardening
+- [Development Setup](docs/development.md) — working on AgEnD itself
+
+## Discord ClassicBot
+
+ClassicBot lets users start AI agents in any Discord text channel using slash commands — no forum topics required.
+
+### Setup
+
+```bash
+# 1. Run quickstart (select Discord — built in, no extra install)
+agend quickstart
+
+# 2. Start the fleet
+agend fleet start
+```
+
+The quickstart will set up both `fleet.yaml` and `classicBot.yaml`. Run `agend quickstart` again to add users or guilds to existing config.
+
+### Usage
+
+| Command | Description |
+|---------|-------------|
+| `/start` | Start an agent in the current channel |
+| `/chat <message>` | Send a message to the agent |
+| `/stop` | Stop the agent in the current channel |
+
+### Server Whitelist
+
+Control which Discord servers can use ClassicBot via `~/.agend/classicBot.yaml`:
+
+```yaml
+defaults:
+  backend: claude-code
+  allowed_guilds:              # Only these servers can /start
+    - "123456789012345678"
+    - "9876543210123456789"
+```
+
+- **Empty or omitted** `allowed_guilds` → all servers allowed (default)
+- **Primary guild** (fleet.yaml `group_id`) → full access (topic mode + ClassicBot)
+- **Whitelisted guilds** → ClassicBot only (`/start`, `/chat`, `/stop`)
+- **Hot reload** — changes detected every 30 seconds, no restart needed
+
+### Per-Channel Backend
+
+Override the backend for specific channels:
+
+```yaml
+defaults:
+  backend: claude-code
+channels:
+  "1234567890":               # Discord channel ID
+    name: dev-help
+    backend: kiro-cli          # Override for this channel
+```
+
+Backend fallback: channel → `defaults.backend` → `fleet.yaml` defaults → `claude-code`
+
+## Known Limitations
+
+- macOS (launchd) and Linux (systemd) supported; Windows is not
+- Official Telegram plugin in global `enabledPlugins` causes 409 polling conflicts
+- OpenCode and Kiro CLI do not read MCP server `instructions` field — fleet context and workflow templates are not injected into these backends' system prompts. Awaiting upstream fix.
+- Gemini CLI is deprecated since 2026-06-18 — use Antigravity CLI (`agy`) instead
+
+## License
+
+MIT
