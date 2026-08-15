@@ -23,7 +23,9 @@
 
 ## 总报告
 
-见 **[SUMMARY.md](./SUMMARY.md)**（给产品负责人的汇总）。
+见 **[SUMMARY.md](./SUMMARY.md)**（汇总）与 **[VOLUME_AND_ABSORBABLE.md](./VOLUME_AND_ABSORBABLE.md)**（每块 ≥10 个 A 级可吸收项 + KB 体积估算 + Hermes 生态）。
+
+Hermes 插件/技能生态专柜：`[00-hermes-ecosystem/](./00-hermes-ecosystem/)`。
 
 ## 刷新抓取
 

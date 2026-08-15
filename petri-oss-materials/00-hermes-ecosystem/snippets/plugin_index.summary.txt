@@ -1,0 +1,5 @@
+hermes-media-studio	NousResearch/hermes-media-studio	Media Studio — generative media workspace plugin for Hermes Desktop (fal + Krea, durable job queue, library).
+hermes-telegram-business	NousResearch/hermes-telegram-business	Observe-with-approval Telegram Business Mode (secretary bot) plugin — every drafted reply requires owner approval before it reaches the customer.
+plugin-llm-example	NousResearch/hermes-example-plugins	Reference plugin showing host-owned structured LLM access via ctx.llm.complete_structured(). Registers a /receipt-extract slash command.
+plugin-llm-async-example	NousResearch/hermes-example-plugins	Reference plugin demonstrating async host-owned LLM access from plugin code — the asyncio counterpart to plugin-llm-example.
+hermes-plugin-chrome-profiles	anpicasso/hermes-plugin-chrome-profiles	Switch Hermes browser tools between Chrome profiles via CDP.
