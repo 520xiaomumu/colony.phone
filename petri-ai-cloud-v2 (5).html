@@ -1,0 +1,1717 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI 配置</title>
+<style>
+:root{color-scheme:dark;
+--bg:#0a0a0a;
+--bg-2:#131313;
+--bg-3:#1a1a1a;
+--surface:rgba(255,255,255,.035);
+--surface-hover:rgba(255,255,255,.065);
+--border:rgba(255,255,255,.08);
+--border-strong:rgba(255,255,255,.18);
+--text:#fafafa;
+--text-muted:#8a8a8a;
+--text-dim:#555;
+--accent:#B5FF00;
+--accent-soft:rgba(181,255,0,.12);
+--warn:#FF9500;
+--danger:#FF4444;
+--radius:12px;
+--radius-lg:18px;
+--mono:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+--serif:"Fraunces",Georgia,serif}
+body{background:var(--bg);
+color:var(--text);
+font-family:var(--sans);
+margin:0}
+input,select,textarea,button{font-family:inherit}
+.cl-brand{font-family:var(--serif);
+font-style:italic;
+font-weight:700;
+letter-spacing:.4px}
+.cl-btn{background:var(--surface);
+border:1px solid var(--border-strong);
+color:var(--text);
+border-radius:8px;
+padding:6px 12px;
+font-size:12px;
+cursor:pointer}
+.cl-btn:hover{border-color:var(--accent);
+color:var(--accent)}
+.cl-btn-primary{background:var(--accent);
+border:0;
+color:#000;
+border-radius:8px;
+padding:6px 14px;
+font-size:12px;
+font-weight:600;
+cursor:pointer}
+.cl-input{background:var(--bg-2);
+border:1px solid var(--border);
+color:var(--text);
+border-radius:8px;
+padding:7px 10px;
+font-size:13px;
+box-sizing:border-box}
+.cl-card{background:var(--bg-2);
+border:1px solid var(--border);
+border-radius:var(--radius);
+padding:14px}
+.petri-masthead{display:flex;
+align-items:baseline;
+gap:12px;
+padding:14px 18px;
+border-bottom:1px solid var(--border)}
+.petri-masthead .cl-brand{font-size:18px;
+color:var(--accent)}
+.pm-name{font-size:14px;
+font-weight:600}
+.pm-lineage{margin-left:auto;
+font-size:11px;
+color:var(--text-muted)}
+.settings-hint{font-size:11px;
+color:var(--text-muted);
+line-height:1.6}
+body[data-wrapper] [data-block-id]{padding:18px}
+</style>
+</head>
+<body data-wrapper="v1">
+<div class="petri-masthead"><span class="cl-brand">Colony</span><span class="pm-name">AI 配置</span><span class="pm-lineage">源自 Colony 第1代 · Stem 14121d04</span></div>
+<!--COLONY-PETRI {"wrapper":"v1","blockId":"petri:ai","version":1,"codeHash":"c75339f1","parentStemHash":"14121d04","at":"2026-07-03T12:02:28.114Z"}-->
+<script type="colony/petri" data-id="petri:ai">
+/*BLOCK*/{"id":"petri:ai","name":"AI 配置","version":1,"after":["petri:ui-shell"],"requires":[],"provides":["llm"],"category":"feature","degrade":"无","sdk":["ai.chat","ai.chatStream","ai.tts","ai.transcribe","ai.imagine","ai.video","ai.music","ai.models","ai.configure","ai.test"]}/*CODE*/
+(function (ctx) {
+  ctx.css("/* 设置表单组件库(v3 真身) — ai 是全量源; bridge 自带其用到的 6 类同名副本(孤儿完整), ui-shell 搭车此份(它缺席时设置区本就不在) */\n.settings-card { max-width: 680px; max-height: 86vh;" +
+    " overflow-y: auto; }\n.settings-section { margin-bottom: 24px; }\n.settings-section + .settings-section { padding-top: 22px;" +
+    " border-top: 1px solid var(--border); }\n.settings-section-title { font-family: var(--serif); font-size: 17px;" +
+    " font-weight: 500; margin-bottom: 4px; }\n.settings-section-desc { font-size: 12px; color: var(--text-muted);" +
+    " margin-bottom: 14px; line-height: 1.55; }\n.settings-label { display: block; font-size: 10px; font-family: var(--mono);" +
+    " color: var(--text-muted); margin-bottom: 6px; margin-top: 12px; text-transform: uppercase; letter-spacing: .08em;" +
+    " font-weight: 500; }\n.settings-hint { font-size: 11px; color: var(--text-muted); margin-top: 6px; line-height: 1.55;" +
+    " }\n.settings-hint code { font-family: var(--mono); font-size: 11px; background: var(--bg); padding: 1px 5px;" +
+    " border-radius: 3px; color: var(--accent); }\n.form-input { width: 100%; background: var(--bg); border: 1px solid var(--border);" +
+    " color: var(--text); padding: 10px 13px; border-radius: 12px; font-family: var(--sans); font-size: 13px; outline: none;" +
+    " transition: border-color .2s, background .2s; box-sizing: border-box; }\n.form-input.mono { font-family: var(--mono);" +
+    " font-size: 12px; }\n.form-input:focus { border-color: var(--accent); background: #0d0d0d; }\n.form-input::placeholder { color: var(--text-dim);" +
+    " }\n.row-input .form-input { flex: 1; }\n.model-row .form-input { flex: 1; }\n.row-input { display: flex; gap: 8px;" +
+    " align-items: stretch; }\n.provider-bar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; padding: 10px;" +
+    " background: var(--bg); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 10px; }\n.provider-chips { display: flex;" +
+    " gap: 6px; flex-wrap: wrap; flex: 1; }\n.prov-chip { display: inline-flex; align-items: center; gap: 7px; padding: 6px 13px 6px 11px;" +
+    " background: var(--bg-2); border: 1px solid var(--border); color: var(--text-muted); font-size: 12px; font-weight: 500;" +
+    " border-radius: 999px; cursor: pointer; transition: all .2s; position: relative; user-select: none; line-height: 1.3;" +
+    " }\n.prov-chip .prov-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim);" +
+    " flex-shrink: 0; transition: background .2s, box-shadow .2s; }\n.prov-chip:hover { color: var(--text); border-color: var(--border-strong);" +
+    " }\n.prov-chip.tested .prov-dot { background: var(--accent); box-shadow: 0 0 0 3px rgba(181,255,0,.18); }\n.prov-chip.tested { border-color: rgba(181,255,0,.4);" +
+    " color: var(--accent); background: rgba(181,255,0,.06); }\n.prov-chip.active { background: rgba(255,255,255,.08);" +
+    " border-color: var(--border-strong); color: var(--text); }\n.prov-chip.active.tested { background: rgba(181,255,0,.15);" +
+    " border-color: var(--accent); color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }\n.prov-add-btn { width: 30px;" +
+    " height: 30px; border-radius: 8px; background: var(--surface); border: 1px dashed var(--border-strong); color: var(--text-muted);" +
+    " cursor: pointer; font-size: 15px; display: flex; align-items: center; justify-content: center; transition: all .2s;" +
+    " flex-shrink: 0; padding: 0 0 2px 0; }\n.prov-add-btn:hover { border-color: var(--accent); color: var(--accent);" +
+    " background: var(--accent-soft); }\n.model-row { display: flex; gap: 8px; align-items: stretch; }\n.cors-toggle-row { display: flex;" +
+    " align-items: flex-start; gap: 8px; padding: 12px 14px; font-size: 12px; }\n.cors-toggle-row input[type=checkbox] { width: 16px;" +
+    " height: 16px; accent-color: var(--accent); margin-top: 2px; flex-shrink: 0; }\n.cors-box { border: 1px solid var(--border);" +
+    " border-radius: 10px; padding: 10px 12px; margin-top: 8px; }\n.deploy-details { background: var(--surface);" +
+    " border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 8px; }\n.deploy-details summary { cursor: pointer;" +
+    " padding: 12px 14px; font-weight: 500; font-size: 13px; list-style: none; user-select: none; display: flex;" +
+    " align-items: center; gap: 10px; }\n.deploy-details summary::-webkit-details-marker { display: none; }\n.deploy-details summary::before { content: \"▸\";" +
+    " color: var(--text-muted); font-size: 10px; transition: transform .2s; }\n.deploy-details[open] summary::before { transform: rotate(90deg);" +
+    " }\n.deploy-content { padding: 4px 14px 14px; }\n.icon-pill-btn { background: var(--surface); border: 1px solid var(--border);" +
+    " color: var(--text-muted); padding: 0 14px; border-radius: 10px; cursor: pointer; font-size: 12px; font-weight: 500;" +
+    " transition: all .2s; flex-shrink: 0; white-space: nowrap; font-family: var(--sans); }\n.icon-pill-btn:hover { color: var(--accent);" +
+    " border-color: var(--accent); background: var(--accent-soft); }\n.icon-pill-btn:disabled { opacity: .5; cursor: not-allowed;" +
+    " }\n.ghost-btn { background: transparent; border: 1px solid var(--border); color: var(--text-muted); padding: 10px 18px;" +
+    " border-radius: 999px; cursor: pointer; font-weight: 500; font-size: 13px; transition: all .2s; }\n.ghost-btn:hover { color: var(--text);" +
+    " border-color: var(--border-strong); background: var(--surface); }\n.danger-btn { background: transparent;" +
+    " border: 1px solid var(--border); color: var(--text-muted); width: 38px; border-radius: 10px; cursor: pointer;" +
+    " font-size: 14px; transition: all .2s; display: flex; align-items: center; justify-content: center; }\n.danger-btn:hover { color: var(--danger);" +
+    " border-color: var(--danger); background: rgba(255,87,87,.08); }\n.test-result { margin-top: 10px; padding: 10px 14px;" +
+    " border-radius: 8px; font-size: 12px; font-family: var(--mono); line-height: 1.5; }\n.test-result.ok { background: rgba(181,255,0,.08);" +
+    " border: 1px solid rgba(181,255,0,.3); color: var(--accent); }\n.test-result.bad { background: rgba(255,87,87,.08);" +
+    " border: 1px solid rgba(255,87,87,.3); color: #ff9292; }\n.test-result.hidden { display: none; }\n.ai-cap-chips { display: flex;" +
+    " flex-wrap: wrap; gap: 6px; margin-top: 8px; }\n.ai-cap-chip { font-size: 10px; padding: 2px 8px; border-radius: 999px;" +
+    " border: 1px solid var(--border); color: var(--text-muted); }\n.ai-cap-chip.ok { border-color: var(--accent); color: var(--accent);" +
+    " background: var(--accent-soft); }\n"); // 设置表单组件库(v3 真身)+ 能力台账徽章
+  /* AI 配置模块: Foundation.Net + Foundation.Settings(providers) + Agent.LLM + 协议：openai-compatible / local。
+     provider 存于 ctx.kv('settings:' 前缀); 设置界面渲染进壳的设置区; provider 变更后 emit('providers:changed') 供选择器同步刷新。 */
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  const Store = { settings: {
+    get: (k, d) => ctx.kv.get('settings:' + k).then(v => (v === undefined || v === null) ? (d === undefined ? null : d) : v),
+    set: (k, v) => ctx.kv.set('settings:' + k, v),
+  } };
+  /* 技能随块(带版本戳, 版本变了重播): 只讲怎么调用与怎么写, 不描述块与产品结构 */
+  const SKILLS = {
+    '套路-写AI应用': { v: 4, desc: '写带 AI 能力(对话/语音/图/视频/音乐)的应用或节点前必读', guide: '应用 HTML 必须含 <head>(SDK 注入锚, 没有它 window.colony 不存在)。window.colony.ai: chat({messages,model?})→{content} | chatStream({messages,...},onChunk)→流式(onChunk({delta})逐字) | tts({text,voice?})→{audioBase64|url,mimeType} | transcribe({audio:{data,mimeType}})→{text} | imagine({prompt}) | video({prompt}) | music({prompt,lyrics})。' +
+      '模型别写死: models({kind:"text"}) 返回全部实测可用的文本模型(与用户配置实时同步, default:true=用户默认模型可预选, note=该模型的已知毛病要参考), 做成选项让用户挑; models({kind:"multimodal"}) 返回文本外全部能力与归属。确要锁定某厂商才传 provider:"名称或协议名"(非默认做法)。播放音频: new Audio(r.url || ("data:"+r.mimeType+";base64,"+r.audioBase64)).play()。' },
+    '接入AI厂商': { v: 4, desc: '用户给了 API Key / 要接入新厂商或本地模型 / 要验证模型可用性时读', guide: 'run call:ai.configure {name,apiKey,protocol?,endpoint?,model?} — 同名即更新; protocol 默认 openai-compatible，也可 local；endpoint 省略用默认, 成功顺带拉模型清单。本地模型: protocol:"local" 免 Key, 默认连 Ollama(11434), 改 endpoint 里的端口号即适配 LM Studio(1234)/vLLM(8000) 等; 直连被浏览器拦时报错会给两条出路(装插件走中继/给本地服务开跨域)。复用已配厂商的 Key: read kv:settings:ai.providers(原始配置, 含 apiKey)。' +
+      '验通路: run call:ai.test {provider:名称, capability?, model?}; 新厂商第一次测对话必须带 model(或 configure 时就给), 没设主模型会当场报错。capability 默认 text.chat, 另有 audio.generate/audio.transcribe/image.generate/video.generate/music.generate; 测通自动记台账(徽章点亮), 不动用户的默认厂商。视频/音乐慢, 超时报错后台账事后仍可能点亮, 稍后重查。' +
+      '发现某模型反复出毛病: ai.configure {name, notes:{"模型名":"一句话"}}, 值 null 删除; 用户在界面也能看到和改这些标注, 选型时 models 清单带出(仅列已测通厂商)。参数拿不准就联网查该厂官方 API 文档, 别凭记忆猜。' },
+  };
+  for (const [k, val] of Object.entries(SKILLS)) { const key = 'skill:petri:ai:' + k; ctx.kv.get(key).then(cur => { if (!cur || cur.v !== val.v) ctx.kv.set(key, { ...val, seededBy: 'petri:ai' }); }).catch(() => { }); }
+  /* 数据自报: AI 配置的 kv 归属 → 次元口袋按归属聚合 */
+  if (ctx.kv) ctx.kv.set('datamap:petri:ai', {
+    owner: 'petri:ai', label: 'AI 配置', icon: '🧠',
+    ns: [{ prefix: 'settings:ai.', label: '模型/供应商', kind: 'config' },
+         { prefix: 'skill:petri:ai:', label: '最佳实践技能', kind: 'seed' }]
+  }).catch(() => { });
+  const Assets = {
+    bytesToB64(bytes) { let s = ''; const CH = 0x8000; for (let i = 0; i < bytes.length; i += CH) s += String.fromCharCode.apply(null, bytes.subarray(i, i + CH)); return btoa(s); },
+  };
+  // 能力台账 + 任务模型字段
+  const CAP_LABELS = {
+    'text.chat': '文本',
+    'image.generate': '图片',
+    'image.edit': '图片编辑',
+    'video.generate': '视频',
+    'audio.generate': '语音',
+    'audio.transcribe': '转录',
+    'embedding': '嵌入',
+    'rerank': '重排',
+    'music.generate': '音乐',
+  };
+  const CAP_TASK_MODEL = {
+    'text.chat': 'model',
+    'image.generate': 'imageModel',
+    'image.edit': 'imageEditModel',
+    'video.generate': 'videoModel',
+    'audio.generate': 'ttsModel',
+    'audio.transcribe': 'sttModel',
+    'embedding': 'embeddingModel',
+    'rerank': 'rerankModel',
+    'music.generate': 'musicModel',
+  };
+  // 能力表单数据驱动：UI / 同步 / 测试选择器共用
+  const CAP_FIELDS = [
+    { field: 'imageModel', cap: 'image.generate', kind: 'image', cat: 'image', label: '图片生成', path: '/images/generations', test: true },
+    { field: 'imageEditModel', cap: 'image.edit', kind: 'imageEdit', cat: 'imageEdit', label: '图片编辑', path: '/images/edits', test: true },
+    { field: 'videoModel', cap: 'video.generate', kind: 'video', cat: 'video', label: '视频', path: '/videos/generations', test: true },
+    { field: 'ttsModel', cap: 'audio.generate', kind: 'tts', cat: 'tts', label: '语音 TTS', path: '/audio/speech', test: true },
+    { field: 'sttModel', cap: 'audio.transcribe', kind: 'stt', cat: 'stt', label: '转录 STT', path: '/audio/transcriptions', test: true },
+    { field: 'embeddingModel', cap: 'embedding', kind: 'embedding', cat: 'embedding', label: '嵌入 Embedding', path: '/embeddings', test: true },
+    { field: 'rerankModel', cap: 'rerank', kind: 'rerank', cat: 'rerank', label: '重排 Rerank', path: '/rerank', test: true },
+    { field: 'musicModel', cap: 'music.generate', kind: 'music', cat: 'music', label: '音乐', path: '/music/generations', test: true },
+  ];
+
+  // 按能力名启发式筛选模型（跨厂商聚合后用）
+  const MODEL_CAT_RE = {
+    image: /(image|imagen|flux|dall-e|sdxl|stable-diffusion|midjourney|cogview|wanx|qwen-image|step-image|gpt-image)/i,
+    imageEdit: /(edit|image-edit|inpainting|step-image-edit)/i,
+    video: /(video|veo|hailuo|runway|kling|luma|sora|cogvideo)/i,
+    tts: /(tts|speech|audio-speech|sovits|fish-speech)/i,
+    stt: /(whisper|asr|transcri|speech-to-text|paraformer)/i,
+    embedding: /(embed|bge-|e5-|gte-|text-embedding|jina-embed)/i,
+    rerank: /(rerank|bge-reranker|jina-rerank)/i,
+    music: /(music|song|melody|minimax-music|ace-step)/i,
+    // 文本：排除明显非对话模型
+    chat: /^(?!.*(embed|rerank|tts|whisper|asr|image|video|veo|hailuo|music|dall-e|flux|speech)).+/i,
+  };
+  function filterModelsByCat(models, cat) {
+    const re = MODEL_CAT_RE[cat];
+    if (!re || !models || !models.length) return models || [];
+    const hit = models.filter(m => re.test(String(m)));
+    // 筛太少时回退全量，避免误杀
+    return hit.length ? hit : models;
+  }
+  
+  // 统一 endpoint 归一与能力路径拼接（适配器 / UI / 云端同步共用）
+  function normalizeBase(endpoint) {
+    let ep = String(endpoint || '').trim().replace(/\/+$/, '');
+    ep = ep.replace(/\/(chat\/completions|completions|messages|images\/generations|images\/edits|audio\/speech|audio\/transcriptions|embeddings|rerank|reranking|music\/generations|models)(\?.*)?$/i, '');
+    return ep.replace(/\/+$/, '');
+  }
+  const CAP_PATH = {
+    chat: '/chat/completions',
+    image: '/images/generations',
+    imageEdit: '/images/edits',
+    tts: '/audio/speech',
+    stt: '/audio/transcriptions',
+    embedding: '/embeddings',
+    rerank: '/rerank',
+    music: '/music/generations',
+    video: '/videos/generations',
+    models: '/models',
+  };
+  function joinCap(endpoint, kind) {
+    const base = normalizeBase(endpoint);
+    const path = CAP_PATH[kind] || '';
+    return path ? base + path : base;
+  }
+
+async function allProvidersModels() {
+    const list = await Settings.getProviders();
+    const out = [];
+    const seen = new Set();
+    for (const p of list) {
+      for (const m of (p.models || [])) {
+        if (!m || seen.has(m)) continue;
+        seen.add(m);
+        out.push(m);
+      }
+      // 也把已配置的能力模型算进候选
+      for (const k of ['model', 'imageModel', 'imageEditModel', 'videoModel', 'ttsModel', 'sttModel', 'embeddingModel', 'rerankModel', 'musicModel']) {
+        const m = p[k];
+        if (m && !seen.has(m)) { seen.add(m); out.push(m); }
+      }
+    }
+    return out.sort();
+  }
+  const SILENT_WAV = 'UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAIA+AAACABAAZGF0YQAAAAA='; // STT 通路探针
+  // 音色归一(TTS 契约): 字符串或 {voice_id,speed} 对象都收, 兜底 provider.ttsVoice → 各厂商默认音色
+  const pickVoice = (voice, provider, dft) => (voice && voice.voice_id) || (typeof voice === 'string' && voice) || provider.ttsVoice || dft;
+
+/* Foundation.Relay: 本地回环经插件中继 */
+const LOOPBACK_RE = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//i;
+const Relay = (() => {
+  let seq = 0, inited = false, presentCache = null;
+  const oneshot = new Map(), streams = new Map();
+  function init() { // 惰性挂载: 无窗口环境(测试)与不用本地模型的页面零开销
+    if (inited) return; inited = true;
+    window.addEventListener('message', (e) => {
+      if (e.source !== window || !e.data) return;
+      const r = e.data.__colonyRelayResult;
+      if (r && oneshot.has(r.id)) { const fn = oneshot.get(r.id); oneshot.delete(r.id); fn(r); return; }
+      const c = e.data.__colonyRelayChunk;
+      if (c && streams.has(c.id)) streams.get(c.id)(c);
+    });
+  }
+  function call(op, payload, timeout) {
+    init();
+    return new Promise((resolve) => {
+      const id = 'ai' + (++seq);
+      oneshot.set(id, resolve);
+      window.postMessage({ __colonyRelay: { id, op, ...(payload || {}) } }, '*');
+      setTimeout(() => { if (oneshot.has(id)) { oneshot.delete(id); resolve({ error: '插件无应答' }); } }, timeout || 6000);
+    });
+  }
+  async function present() { // 5s 短缓存: 每次请求都 ping 会白等 900ms
+    if (presentCache && Date.now() - presentCache.t < 5000) return presentCache.v;
+    const v = !(await call('ping', null, 900)).error;
+    presentCache = { t: Date.now(), v };
+    return v;
+  }
+  /* 流式: 逐段 yield 文本块; 提前 return 发 cancel 真取消扩展侧请求(桥同款) */
+  async function* stream(req) {
+    init();
+    const id = 'as' + (++seq);
+    const queue = []; let done = false, errObj = null, notify = null;
+    const beat = { t: Date.now() };
+    streams.set(id, (c) => {
+      beat.t = Date.now();
+      if (c.delta) queue.push(c.delta);
+      if (c.error) errObj = c;
+      if (c.done) done = true;
+      if (notify) notify();
+    });
+    window.postMessage({ __colonyRelay: { id, op: 'stream', req } }, '*');
+    try {
+      while (true) {
+        while (queue.length) yield queue.shift();
+        if (errObj) throw new Error(errObj.error + (errObj.fix ? ' — ' + errObj.fix : ''));
+        if (done) return;
+        if (Date.now() - beat.t > 90000) throw new Error('插件流 90s 无活动 — 插件可能被禁用或浏览器休眠了它, 刷新页面重试');
+        await new Promise(r2 => { notify = r2; setTimeout(r2, 1000); });
+        notify = null;
+      }
+    } finally { streams.delete(id); window.postMessage({ __colonyRelay: { id, op: 'cancel' } }, '*'); }
+  }
+  return { present, call, stream };
+})();
+const relayUsable = async (url) => LOOPBACK_RE.test(url) && typeof window !== 'undefined' && await Relay.present();
+/* Foundation.Net: fetch + 可选代理 */
+const Net = (() => {
+  /**
+   * 应用 CORS 代理: provider 自带的代理配置(worker URL)
+   * 格式: proxyBase + '/?target=' + encodeURIComponent(targetURL)
+   */
+  function applyProxy(url, cfg) {
+    if (!cfg || !cfg.enabled || !cfg.baseURL) return url;
+    if (url.startsWith(cfg.baseURL.replace(/\/+$/, ''))) return url; // 已经是代理URL
+    // worker 格式: proxyBase + '/?target=' + encodeURIComponent(url)
+    return cfg.baseURL.replace(/\/+$/, '') + '/?target=' + encodeURIComponent(url);
+  }
+
+  // 回环中继: 插件在场时本机端点经插件代拉(伪 Response 只承诺文本回执; 二进制如实拒 — 本地模型用不到)
+  async function relayFetch(url, opts, timeout) {
+    if (opts.body && typeof opts.body !== 'string') throw new Error('插件中继只支持文本请求体');
+    const r = await Relay.call('fetch', { req: { url, method: opts.method || 'GET', headers: opts.headers || {}, body: opts.body || undefined, timeout } }, (timeout || 30000) + 5000);
+    if (r.error) throw new Error('插件中继失败: ' + r.error + (r.fix ? ' — ' + r.fix : ''));
+    return {
+      ok: r.status >= 200 && r.status < 300, status: r.status,
+      headers: { get: k => (String(k).toLowerCase() === 'content-type' ? (r.contentType || null) : null) },
+      text: async () => r.text || '', json: async () => JSON.parse(r.text || 'null'),
+      arrayBuffer: async () => { throw new Error('插件中继暂不支持二进制回执'); },
+    };
+  }
+
+  async function netFetch(url, options = {}) {
+    const { timeout = 60000, retries = 1, retryDelay = 800, proxy, signal, ...fetchOpts } = options;
+    const targetURL = applyProxy(url, proxy);
+    if (await relayUsable(targetURL)) return relayFetch(targetURL, fetchOpts, timeout); // 回环+插件在场 → 中继(规则可预测, 无双请求魔法)
+    let lastErr;
+    for (let i = 0; i <= retries; i++) {
+      if (signal && signal.aborted) throw new DOMException('Aborted', 'AbortError');
+      const ctrl = new AbortController();
+      // 外部取消(用户停止/插话)桥接进来, 随时生效; 成功返回后 listener 保留, 使流式 body 读取期间也能被中断(刀2)
+      const onAbort = () => ctrl.abort();
+      if (signal) signal.addEventListener('abort', onAbort, { once: true });
+      const t = setTimeout(() => ctrl.abort(), timeout); // 只罩到响应头; 流式 body 停滞由 chatStream 的 idle 看门狗接棒
+      try {
+        const res = await fetch(targetURL, { ...fetchOpts, signal: ctrl.signal });
+        clearTimeout(t);
+        if (!res.ok && (res.status >= 500 || res.status === 429) && i < retries) {
+          // 瞬时错误重试; 429 尊重 Retry-After(上限 30s), 不再一次限流就打断任务(刀2)
+          lastErr = new Error(`HTTP ${res.status}`);
+          if (signal) signal.removeEventListener('abort', onAbort);
+          const ra = res.status === 429 ? parseFloat(res.headers.get('retry-after') || '0') : 0;
+          await new Promise(r => setTimeout(r, ra > 0 ? Math.min(ra * 1000, 30000) : retryDelay));
+          continue;
+        }
+        return res;
+      } catch (e) {
+        clearTimeout(t);
+        if (signal) signal.removeEventListener('abort', onAbort);
+        lastErr = e;
+        if (e && e.name === 'AbortError') throw e; // 取消是意图不是故障, 不重试
+        if (i < retries) await new Promise(r => setTimeout(r, retryDelay));
+      }
+    }
+    // 本机端点直连被浏览器拦(CORS/file://)且插件不在场 → 给两条出路, 不让 TypeError 猜谜
+    if (lastErr && lastErr.name === 'TypeError' && LOOPBACK_RE.test(targetURL))
+      throw new Error('本地端点直连被浏览器拦(CORS/file://)。① 装 Colony Bridge 插件(chrome://extensions → 开发者模式 → 加载已解压 plugin/ 目录; file:// 页面还需在扩展详情开「允许访问文件网址」) ② 或给本地服务开跨域(Ollama 设 OLLAMA_ORIGINS=*)');
+    throw lastErr;
+  }
+
+  return { fetch: netFetch };
+})();
+/* Foundation.Settings: providers 持久化 */
+const PROVIDER_SEED = /*⚘SEED*/null/*⚘SEED*/; // 配置种子槽: 出厂恒空; 设置区「打包配置版」写入全量厂商配置(含明文Key), 随「导出本块」出走, 导入方启用后 applySeed 一次性播种
+const Settings = (() => {
+  const PROVIDERS_KEY = 'ai.providers';
+  const ACTIVE_KEY    = 'ai.activeProviderId';
+
+  async function getProviders() { return (await Store.settings.get(PROVIDERS_KEY, [])) || []; }
+  async function saveProviders(arr) { await Store.settings.set(PROVIDERS_KEY, arr); }
+
+  async function addProvider(prov) {
+    const list = await getProviders();
+    if (!prov.id) prov.id = crypto.randomUUID();
+    if (!prov.protocol) prov.protocol = 'openai-compatible';
+    if (!prov.endpoint) prov.endpoint = LLM.protocolDefault(prov.protocol); // 默认端点单一源: 适配器注册表
+    if (prov.protocol === 'local' && !prov.apiKey) prov.apiKey = 'local'; // 免 Key 真值占位: 满足全站"有 Key 才算配好"判定, Bearer local 对本地服务无害
+    if (typeof prov.allowMiniAppSDK !== 'boolean') prov.allowMiniAppSDK = false;
+    list.push(prov);
+    await saveProviders(list);
+    if (list.length === 1) await setActiveProvider(prov.id);
+    return prov;
+  }
+
+  // 写入串行化: 并发 updateProvider 的读-改-写不再互相丢更新(verified 台账多写方的地基)
+  let _writeQ = Promise.resolve();
+  function updateProvider(id, patch) {
+    const job = _writeQ.then(async () => {
+      const list = await getProviders();
+      const i = list.findIndex(p => p.id === id);
+      if (i < 0) throw new Error('provider not found: ' + id);
+      // verified/notes 键级合并: 调用方只传增量, 值 null=删除该条(徽章熄灭/标注移除)
+      const merge = f => { if (!(patch && patch[f])) return; const m = { ...(list[i][f] || {}), ...patch[f] }; for (const k of Object.keys(m)) if (m[k] == null) delete m[k]; patch = { ...patch, [f]: m }; };
+      merge('verified'); merge('notes');
+      list[i] = { ...list[i], ...patch, id };
+      await saveProviders(list);
+      return list[i];
+    });
+    _writeQ = job.catch(() => { });
+    return job;
+  }
+
+  async function deleteProvider(id) {
+    let list = await getProviders();
+    list = list.filter(p => p.id !== id);
+    await saveProviders(list);
+    const active = await getActiveProviderId();
+    if (active === id) await setActiveProvider(list[0] ? list[0].id : null);
+  }
+
+  async function getActiveProviderId() { return await Store.settings.get(ACTIVE_KEY, null); }
+  async function setActiveProvider(id) { await Store.settings.set(ACTIVE_KEY, id); }
+
+  async function getActiveProvider() {
+    const id = await getActiveProviderId();
+    if (!id) return null;
+    const list = await getProviders();
+    return list.find(p => p.id === id) || null;
+  }
+
+  return {
+    getProviders, addProvider, updateProvider, deleteProvider,
+    getActiveProviderId, setActiveProvider, getActiveProvider,
+  };
+})();
+function splitSSE(txt) { const out = []; String(txt || '').split(/\n+/).forEach(line => { line = line.trim(); if (!line.startsWith('data:')) return; const s = line.slice(5).trim(); if (s && s !== '[DONE]') { try { out.push(JSON.parse(s)); } catch (e) { } } }); return out; } // 整段 SSE 文本→JSON 块数组, 唯一一份; 必须在块顶层: LLM 闭包(chat 容错)与协议适配器(StepFun ASR)两头都用, 放闭包内适配器够不着
+/* Agent.LLM: 对话/多模态/测通 */
+const LLM = (() => {
+  const providers = new Map();
+
+  // 注册期契约校验: 声明了能力却没实现对应钩子 → 当场报错(agent 照 skill 写新适配器时启动即红)
+  const CAP_HOOKS = {
+    'image.generate': ['buildImageRequest', 'parseImageReply'],
+    'image.edit': ['buildImageEditRequest', 'parseImageReply'],
+    'video.generate': ['buildVideoRequest', 'buildVideoPollRequest', 'parseVideoOperation'],
+    'audio.generate': ['buildTTSRequest', 'parseTTSReply'],
+    'audio.transcribe': ['buildSTTRequest', 'parseSTTReply'],
+    'embedding': ['buildEmbeddingRequest', 'parseEmbeddingReply'],
+    'rerank': ['buildRerankRequest', 'parseRerankReply'],
+    'music.generate': ['buildMusicRequest', 'parseMusicReply'],
+  };
+  function registerProvider(adapter) {
+    if (!adapter || !adapter.protocol) throw new Error('适配器缺 protocol 字段');
+    const missing = [];
+    for (const cap of (adapter.capabilities || [])) for (const fn of (CAP_HOOKS[cap] || [])) if (typeof adapter[fn] !== 'function') missing.push(cap + ' 缺 ' + fn);
+    if ((adapter.capabilities || []).includes('text.chat') && !adapter.chat && (typeof adapter.buildChatRequest !== 'function' || typeof adapter.parseChatReply !== 'function')) missing.push('text.chat 缺 buildChatRequest/parseChatReply');
+    if (missing.length) throw new Error('适配器「' + adapter.protocol + '」能力声明与实现不符: ' + missing.join('; '));
+    providers.set(adapter.protocol, adapter);
+  }
+  // 协议默认端点/下拉标签的单一源: 全部从适配器注册表派生, 加协议只改适配器一处
+  // 只列声明了 label 的用户面协议 —— 桥等块注册的内部协议(如 colony-endpoint)不进设置下拉, 由注册方自己的 UI 管理
+  function protocolDefault(proto) { const a = providers.get(proto); return (a && a.defaultEndpoint) || ''; }
+  function protocolList() { return [...providers.values()].filter(a => a.label).sort((x, y) => (x.order || 99) - (y.order || 99)).map(a => ({ protocol: a.protocol, label: a.label })); }
+
+  // ── 全局 LLM 并发闸(模块级 → 所有 workflow/node/agent 的 chat 共用; 按 provider 分桶) ──
+  // 多项目并行时防打爆 provider。每桶上限 = provider.concurrency || 默认8; 命中429 临时降到3。
+  const LLM_CONCURRENCY_DEFAULT = 8;   // 默认上限(仅防手滑一次性打几百个; 厂商额度本就宽, 小厂商靠 provider.concurrency 调 + 429退避)
+  const LLM_BACKOFF_LIMIT = 3;
+  const LLM_BACKOFF_MS = 20000;
+  const _buckets = new Map();   // key -> { active, queue:[], backoffUntil }
+  function _bucket(key) { let b = _buckets.get(key); if (!b) { b = { active: 0, queue: [], backoffUntil: 0 }; _buckets.set(key, b); } return b; }
+  function _limit(b, base) { return (Date.now() < b.backoffUntil) ? Math.min(LLM_BACKOFF_LIMIT, base) : base; }
+  function _drain(key, base) { const b = _bucket(key); while (b.active < _limit(b, base) && b.queue.length) { const job = b.queue.shift(); b.active++; job(); } }
+  // 取一个并发槽跑 fn; 完成/失败都释放并推进队列。命中限流(429/rate limit)→ 该桶进入降速窗口。
+  function withLlmSlot(key, base, fn) {
+    base = Math.max(1, base || LLM_CONCURRENCY_DEFAULT);
+    return new Promise((resolve, reject) => {
+      const b = _bucket(key);
+      const job = async () => {
+        try { resolve(await fn()); }
+        catch (e) { if (/\b429\b|rate.?limit|too many|overload/i.test(e && e.message || '')) b.backoffUntil = Date.now() + LLM_BACKOFF_MS; reject(e); }
+        finally { b.active--; _drain(key, base); }
+      };
+      b.queue.push(job); _drain(key, base);
+    });
+  }
+
+  function init() { // 六家全在此注册(单一注册点; const 提升到调用时均已定义)
+    registerProvider(OpenAICompatibleProvider);
+    registerProvider(LocalProvider);
+  }
+
+  function resolveAdapter(provider) {
+    const a = providers.get(provider.protocol);
+    if (!a) throw new Error('未知协议: ' + provider.protocol);
+    return a;
+  }
+
+  /* ── 外部大脑来源(RB-7): 其它块(桥端点等)经服务面注册记录来源, 读路径合并、永不落盘 settings ——
+     save/update/delete 仍只写 Settings 自己的记录, 外部记录的编辑归其注册方(如桥的端点卡)。 */
+  const extSources = new Map();
+  let extSeq = 0;
+  function registerExternalSource(fn) { const k = ++extSeq; extSources.set(k, fn); return () => extSources.delete(k); }
+  async function allProviders() {
+    const base = (await Settings.getProviders()).slice();
+    for (const fn of extSources.values()) { try { base.push(...((await fn()) || [])); } catch (e) { } }
+    return base;
+  }
+
+  // 统一 HTTP 错误出口: 结构化字段(status/provider/protocol/retryable)+ 适配器可选"错误码→人话"翻译
+  async function httpFail(res, provider, adapter) {
+    const text = await res.text().catch(() => '');
+    let hint = '';
+    try { hint = (adapter && adapter.explainError && adapter.explainError(res.status, text)) || ''; } catch (e) { }
+    const err = new Error('HTTP ' + res.status + ': ' + text.slice(0, 200) + (hint ? ' → ' + hint : ''));
+    err.status = res.status; err.provider = provider && provider.name; err.protocol = provider && provider.protocol;
+    err.retryable = res.status === 429 || res.status >= 500;
+    throw err;
+  }
+
+  async function getProvider(providerId, model) {
+    if (providerId) {
+      const all = await allProviders(); // 合并外部来源: 端点大脑记录经此被 chat/chatStream/testConnection 找到
+      const p = all.find(x => x.id === providerId);
+      if (!p) throw new Error('provider 不存在');
+      return p;
+    }
+    const active = await Settings.getActiveProvider();
+    // 模型名直达: 只给模型名时自动找厂商 —— 活跃厂商有此模型则优先; 否则全体唯一命中即路由, 多家命中如实报错
+    if (model) {
+      const hasM = p => (p.models || []).includes(model) || p.model === model;
+      if (active && hasM(active)) return active;
+      const hits = (await allProviders()).filter(hasM);
+      if (hits.length === 1) return hits[0];
+      if (hits.length > 1) throw new Error(`模型「${model}」在多家厂商都有(${hits.map(p => p.name).join(' / ')}); 请带 provider 指定`);
+      // 零命中: 活跃厂商拉过列表还找不到 → 大概率拼错, 如实报错; 没拉过列表则保持旧语义交给活跃厂商试
+      if (active && (active.models || []).length) throw new Error(`模型「${model}」不在任何已配厂商的模型清单里; 检查拼写或先在 AI 配置拉取列表, 也可带 provider 指定`);
+    }
+    if (!active) throw new Error('未配置 AI provider');
+    return active;
+  }
+
+  async function chat({ messages, model, tools, response_format, temperature, generationConfig, providerId, fromMiniApp } = {}) {
+    const provider = await getProvider(providerId, model);
+    guardSDK(provider, fromMiniApp);
+    const key = 'p:' + (provider.id || provider.protocol || 'default');
+    return withLlmSlot(key, provider.concurrency, async () => {
+      const adapter = resolveAdapter(provider);
+      if (adapter.chat) return adapter.chat(provider, { messages, model, tools, response_format, temperature, generationConfig }); // 适配器自带传输(如桥端点: 直连→插件中继)
+      const { url, headers, body } = adapter.buildChatRequest(provider, { messages, model, tools, response_format, temperature, generationConfig });
+      const res = await Net.fetch(url, { method: 'POST', headers, body, proxy: provider.proxy, timeout: (provider.timeout || (provider.protocol === 'local' ? 300 : 120)) * 1000 }); // 本地大模型首字慢, 预设给宽; provider.timeout(秒)可调
+      if (!res.ok) await httpFail(res, provider, adapter);
+      const txt = await res.text();
+      let json;
+      if (/^\s*data:/m.test(txt)) { // 非流式容错: 部分 OpenAI 兼容网关/中转 stream:false 仍回 SSE chunk — 拼 delta 收尾(取末包会拿到 stop 空包)
+        const chunks = splitSSE(txt);
+        const parts = [];
+        for (const j of chunks) { const c = j && j.choices && j.choices[0]; const d = c && c.delta; const m2 = c && c.message; const t = (d && (d.content || d.reasoning_content)) || (m2 && m2.content) || ''; if (t) parts.push(t); }
+        json = { choices: [{ message: { content: parts.join('') } }], rawChunks: chunks };
+      } else json = JSON.parse(txt);
+      return adapter.parseChatReply(json);
+    });
+  }
+
+  // 生图/TTS/STT/音乐共用骨架: 找厂商→权限闸→能力检查→拼请求→发→解析(注册期已校验钩子齐全); 视频因轮询单列
+  // req._binary=响应是二进制音频转 base64; req._sse=响应按文本交回适配器解析(阶跃 ASR)
+  const MEDIA = {
+    'image.generate': { build: 'buildImageRequest', parse: 'parseImageReply', timeout: 180000, eg: 'OpenAI兼容' },
+    'image.edit': { build: 'buildImageEditRequest', parse: 'parseImageReply', timeout: 180000, eg: 'OpenAI兼容/阶跃' },
+    'audio.generate': { build: 'buildTTSRequest', parse: 'parseTTSReply', timeout: 120000, eg: 'OpenAI兼容' },
+    'audio.transcribe': { build: 'buildSTTRequest', parse: 'parseSTTReply', timeout: 120000, eg: 'OpenAI兼容' },
+    'embedding': { build: 'buildEmbeddingRequest', parse: 'parseEmbeddingReply', timeout: 60000, eg: 'OpenAI兼容' },
+    'rerank': { build: 'buildRerankRequest', parse: 'parseRerankReply', timeout: 60000, eg: 'OpenAI兼容中转' },
+    'music.generate': { build: 'buildMusicRequest', parse: 'parseMusicReply', timeout: 180000, eg: 'OpenAI兼容' },
+  };
+  function guardSDK(provider, fromMiniApp) { if (fromMiniApp && !provider.allowMiniAppSDK) throw new Error('厂商「' + (provider.name || provider.id) + '」未对 SDK 面开放(agent 的 run call:ai.* 与 miniapp 同走此闸) — AI 配置里该厂商勾选「允许 mini app 通过 SDK 调用」即可'); }   // 文案改真话: 调用方不一定是 miniapp, 指明开关位置
+  async function mediaCall(cap, args, provider) {
+    provider = provider || await getProvider(args.providerId, args.model);
+    guardSDK(provider, args.fromMiniApp);
+    const adapter = resolveAdapter(provider);
+    const spec = MEDIA[cap];
+    if (!(adapter.capabilities || []).includes(cap) || !adapter[spec.build])
+      throw new Error(`provider「${provider.name}」(${provider.protocol}) 不支持${CAP_LABELS[cap]}; 请选支持 ${cap} 的 provider(如 ${spec.eg})`);
+    const req = adapter[spec.build](provider, args);
+    const res = await Net.fetch(req.url, { method: 'POST', headers: req.headers, body: req.body, proxy: provider.proxy, timeout: spec.timeout });
+    if (!res.ok) await httpFail(res, provider, adapter);
+    const payload = req._binary ? { audioBase64: Assets.bytesToB64(new Uint8Array(await res.arrayBuffer())) } : req._sse ? await res.text() : await res.json();
+    return adapter[spec.parse](payload);
+  }
+  // 生图: 返回标准化 {image:{type,mimeType,data|url}, text}; 不支持则报错(不假装)
+  const generateImage = (a = {}) => mediaCall('image.generate', a);
+  // 图片编辑: 同属图片能力，走 /images/edits
+  const editImage = (a = {}) => mediaCall('image.edit', a);
+  // 嵌入 Embedding
+  const embed = (a = {}) => mediaCall('embedding', a);
+  // 重排 Rerank
+  const rerank = (a = {}) => mediaCall('rerank', a);
+
+  // 生视频(异步 long-running, 自动轮询); adapter 不支持则报错
+  async function generateVideo({ prompt, model, image, aspectRatio, providerId, fromMiniApp, onProgress } = {}) {
+    const provider = await getProvider(providerId, model);
+    guardSDK(provider, fromMiniApp);
+    const adapter = resolveAdapter(provider);
+    if (!adapter.buildVideoRequest || !(adapter.capabilities || []).includes('video.generate'))
+      throw new Error(`provider「${provider.name}」(${provider.protocol}) 不支持生视频; 请选支持 video.generate 的 provider(如 Gemini Veo)`);
+    // 发起
+    const { url, headers, body } = adapter.buildVideoRequest(provider, { prompt, model, image, aspectRatio });
+    const res = await Net.fetch(url, { method: 'POST', headers, body, proxy: provider.proxy, timeout: 120000 });
+    if (!res.ok) await httpFail(res, provider, adapter);
+    let op = adapter.parseVideoOperation(await res.json());
+    // 轮询(视频生成慢, 8秒视频约需1分钟+; 放宽到最多 ~10 分钟, 每 10 秒一次)
+    for (let i = 0; i < 60 && !op.done; i++) {
+      await new Promise(r => setTimeout(r, 10000));
+      if (onProgress) try { onProgress(`视频渲染中… 已等待 ${(i + 1) * 10}s`); } catch {}
+      const pr = adapter.buildVideoPollRequest(provider, op.operationName);
+      const pres = await Net.fetch(pr.url, { method: 'GET', headers: pr.headers, proxy: provider.proxy, timeout: 30000 });
+      if (!pres.ok) continue;
+      const next = adapter.parseVideoOperation(await pres.json());
+      if (!next.done && !next.operationName) next.operationName = op.operationName; // 中间态缺 task_id: 沿用本次轮询的句柄(状态在调用方, adapter 无共享态)
+      op = next;
+    }
+    if (!op.done) throw new Error('生视频超时(10分钟未完成)');
+    if (op.error) throw new Error('视频生成失败: ' + op.error);
+    if (!op.video) throw new Error('视频任务完成但未返回视频数据');
+    // video.uri 需带 key 再 fetch 才能拿到视频流 → 转 base64 统一返回(miniapp 不用自己处理 uri 鉴权)
+    if (op.video.uri && !op.video.data) {
+      try {
+        const vr = await Net.fetch(op.video.uri + (op.video.uri.includes('?') ? '&' : '?') + 'key=' + encodeURIComponent(provider.apiKey), { method: 'GET', proxy: provider.proxy, timeout: 120000 });
+        if (vr.ok) {
+          op.video.data = Assets.bytesToB64(new Uint8Array(await vr.arrayBuffer()));
+          delete op.video.uri;  // 已转 data, uri 含 key 不入上下文
+        }
+      } catch {}
+    }
+    return op;
+  }
+
+  // TTS(文字→语音)
+  const generateAudio = async (a = {}) => _normTTS(await mediaCall('audio.generate', a));
+
+  // TTS 统一契约(在层边界归一, 各 adapter 历史形态在此收口): { audioBase64, mimeType, url?, raw }
+  // 消费方 = agent 朗读(playAudio)/设置页试听/miniapp SDK, 三方从此只认一种形
+  function _normTTS(r) {
+    if (r && !r.audioBase64 && r.audio && r.audio.data) return { audioBase64: r.audio.data, mimeType: r.audio.mimeType || 'audio/mpeg', raw: r.raw || r };
+    return r;
+  }
+
+  // STT(语音→文字)
+  const transcribeAudio = (a = {}) => mediaCall('audio.transcribe', a);
+
+  // 音乐(文字→歌): 未指定 provider 时回退到首个支持且配了 Key 的
+  async function generateMusic(a = {}) {
+    let provider = null;
+    if (!a.providerId) {
+      provider = (await allProviders()).find(p => ((providers.get(p.protocol) || {}).capabilities || []).includes('music.generate') && p.apiKey);
+      if (!provider) throw new Error('没有支持音乐生成的 provider(如 MiniMax); 在 AI 配置添加并配好 Key 再试');
+    }
+    return mediaCall('music.generate', a, provider);
+  }
+
+  // 某 provider(或全部)的能力声明 — 来自 adapter, 用于按能力过滤模型
+  async function getCapabilities(providerId) {
+    if (providerId) {
+      const p = await getProvider(providerId);
+      return { providerId, protocol: p.protocol, capabilities: resolveAdapter(p).capabilities || ['text.chat'] };
+    }
+    const all = await Settings.getProviders();
+    return all.map(p => {
+      const a = providers.get(p.protocol);
+      return { id: p.id, name: p.name, protocol: p.protocol, capabilities: (a && a.capabilities) || ['text.chat'], allowMiniAppSDK: !!p.allowMiniAppSDK, models: p.models || [], hasKey: !!p.apiKey, verified: p.verified || {}, notes: p.notes || {}, model: p.model || '', ttsModel: p.ttsModel || '', sttModel: p.sttModel || '', imageModel: p.imageModel || '', videoModel: p.videoModel || '' };
+    });
+  }
+
+  async function* chatStream({ messages, model, tools, temperature, providerId, fromMiniApp, signal } = {}) {
+    const provider = await getProvider(providerId, model);
+    guardSDK(provider, fromMiniApp);
+    const adapter = resolveAdapter(provider);
+    if (adapter.chatStream) { yield* adapter.chatStream(provider, { messages, model, tools, temperature, signal }); return; } // 适配器自带传输(如桥端点: 直连→插件中继)
+    const { url, headers, body } = adapter.buildChatRequest(provider, { messages, model, tools, temperature, stream: true });
+    // SSE 行解析(单一解析器纪律: 直连与插件中继喂同一个)
+    let buf = '';
+    const parseLines = function* (txt) {
+      buf += txt;
+      let nl;
+      while ((nl = buf.indexOf('\n')) >= 0) {
+        const line = buf.slice(0, nl).replace(/\r$/, '');
+        buf = buf.slice(nl + 1);
+        if (!line.startsWith('data:')) continue;
+        const data = line.slice(5).trim();
+        if (!data || data === '[DONE]') continue;
+        try { const parsed = adapter.parseChatStreamChunk(JSON.parse(data)); if (parsed) yield parsed; } catch {}
+      }
+    };
+    if (await relayUsable(url)) { // 本地模型经插件流式中继; HTTP 错误/停滞由插件侧如实回, 提前收摊发 cancel 真取消
+      for await (const t of Relay.stream({ url, method: 'POST', headers, body })) {
+        if (signal && signal.aborted) return;
+        yield* parseLines(t);
+      }
+      return;
+    }
+    const res = await Net.fetch(url, { method: 'POST', headers, body, proxy: provider.proxy, timeout: (provider.timeout || (provider.protocol === 'local' ? 300 : 180)) * 1000, signal });
+    if (!res.ok) await httpFail(res, provider, adapter);
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    // idle 看门狗: 上游/代理 mid-stream 停滞不断连时, read() 会永远挂起 → 引擎假死且停止键无效。
+    // 每收到一片数据重置计时; 超时 cancel 掉 reader 并如实报错(可重试), 不再无限等。
+    const IDLE_MS = 90000;
+    let idleTimer = null, idleHit = false;
+    const armIdle = () => { clearTimeout(idleTimer); idleTimer = setTimeout(() => { idleHit = true; try { reader.cancel(); } catch (e) {} }, IDLE_MS); };
+    try {
+      armIdle();
+      while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+        armIdle();
+        yield* parseLines(dec.decode(value, { stream: true }));
+      }
+      if (idleHit) throw new Error('流式响应停滞(' + (IDLE_MS / 1000) + 's 无数据), 已主动断开; 可直接重试');
+    } finally {
+      clearTimeout(idleTimer);
+      try { reader.cancel(); } catch {}   // 取消传播终点: 消费者收摊(it.return 会走到这) → 断底层 HTTP 流, 不再计费
+    }
+  }
+
+  async function detectModels(providerId) {
+    const provider = await getProvider(providerId);
+    const adapter = resolveAdapter(provider);
+    const { url, headers } = adapter.buildModelsRequest(provider);
+    const res = await Net.fetch(url, { headers, proxy: provider.proxy, timeout: 30000 });
+    if (!res.ok) await httpFail(res, provider, adapter);
+    const models = adapter.parseModelsReply(await res.json());
+    if (!models.length) throw new Error('未返回任何模型');
+    return models;
+  }
+
+  // 轻量测试: 极短对话验通路(不限 max_tokens, 兼容"思考在 reasoning_content"的推理型模型)
+  async function testConnection(providerId, model) {
+    const reply = await chat({ providerId, model, messages: [{ role: 'user', content: 'hi' }], temperature: 0 });
+    return { ok: true, sample: (reply.content || '').slice(0, 40) };
+  }
+
+  // 能力实测(UI 测试按钮与 agent 的 ai.test 同一套): 最小真实调用, 测通写 verified 台账, 不切活跃厂商
+  const TEST_RUN = {
+    'text.chat': async (id, m) => '回: ' + ((await testConnection(id, m)).sample || 'OK'),
+    'audio.transcribe': async (id, m) => { const r = await transcribeAudio({ providerId: id, model: m, audio: { mimeType: 'audio/wav', data: SILENT_WAV } }); return '通路正常, 返: ' + JSON.stringify(r.text || '').slice(0, 40); },
+    'audio.generate': async (id, m) => { const r = await generateAudio({ providerId: id, model: m, text: '语音链路测试。' }); if (!r.audioBase64 && !r.url) throw new Error('调用成功但无音频'); return '出声 ' + Math.round((r.audioBase64 || '').length * 3 / 4 / 1024) + 'KB'; },
+    'image.generate': async (id, m) => { const r = await generateImage({ providerId: id, model: m, prompt: '一个简单的红色圆形' }); if (!r.image) throw new Error('调用成功但无图片'); return '出图'; },
+    'image.edit': async (id, m) => {
+      // 1x1 PNG 探针（透明像素）
+      const tiny = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+      const r = await editImage({ providerId: id, model: m, prompt: '变成蓝色', image: { mimeType: 'image/png', data: tiny } });
+      if (!r.image) throw new Error('调用成功但无图片');
+      return '编辑通路正常';
+    },
+    'video.generate': async (id, m) => { const r = await generateVideo({ providerId: id, model: m, prompt: '一只猫挥手，1秒' }); if (!r.video) throw new Error('调用成功但无视频'); return '出片'; },
+    'music.generate': async (id, m) => { const r = await generateMusic({ providerId: id, model: m, prompt: '十秒轻快钢琴', lyrics: 'la la la' }); if (!r.audioBase64) throw new Error('调用成功但无音频'); return '出曲'; },
+    'embedding': async (id, m) => {
+      const r = await embed({ providerId: id, model: m, input: 'embedding probe' });
+      const n = (r.embedding || r.embeddings?.[0] || []).length;
+      if (!n) throw new Error('调用成功但无向量');
+      return '维数 ' + n;
+    },
+    'rerank': async (id, m) => {
+      const r = await rerank({ providerId: id, model: m, query: '测试', documents: ['相关文档', '无关内容'] });
+      if (!r.results || !r.results.length) throw new Error('调用成功但无重排结果');
+      return '条数 ' + r.results.length;
+    },
+  };
+  async function testCapability(providerId, cap, model) {
+    cap = cap || 'text.chat';
+    if (!TEST_RUN[cap]) throw new Error('未知能力: ' + cap + '; 可选 ' + Object.keys(TEST_RUN).join(' / '));
+    const p = await getProvider(providerId);
+    if (cap === 'text.chat' && !model && !p.model) throw new Error('厂商「' + p.name + '」未设主模型: 测试时传 model(可从已拉列表挑), 或先把 model 写进配置'); // 挡在发请求前, 不让厂商的 404 来猜病根
+    const detail = await TEST_RUN[cap](providerId, model || undefined);
+    const patch = { verified: { [cap]: { at: Date.now(), model: model || (CAP_TASK_MODEL[cap] !== undefined ? (p[CAP_TASK_MODEL[cap]] || '') : (p.model || '')) } } }; // 记录=实际请求的模型解析链; 媒体能力任务字段空就记空(空=适配器默认), 不再拿主模型冒充(曾把 step-3.7-flash 记成 STT 测通模型)
+    if (model && CAP_TASK_MODEL[cap]) patch[CAP_TASK_MODEL[cap]] = model; // 测通即绑定任务模型(与设置页测试行为一致)
+    if (model && cap === 'text.chat' && !p.model) patch.model = model;
+    let r = { ok: true, capability: cap, detail };
+    try { await Settings.updateProvider(providerId, patch); }
+    catch (e) { r.note = '测通但未入台账(外部来源成员, 台账归其注册方)'; }
+    return r;
+  }
+
+  return {
+    init, chat, chatStream, generateImage, editImage, generateVideo, generateAudio, transcribeAudio, generateMusic, embed, rerank,
+    getCapabilities, detectModels, testConnection, testCapability, registerProvider, registerExternalSource, allProviders, protocolDefault, protocolList
+  };
+})();
+/* OpenAI 兼容协议 */
+const OpenAICompatibleProvider = {
+  protocol: 'openai-compatible',
+  label: 'OpenAI兼容',
+  order: 1,
+  defaultEndpoint: 'https://api.openai.com/v1',
+  capabilities: ['text.chat', 'image.input', 'image.generate', 'image.edit', 'audio.generate', 'audio.transcribe', 'embedding', 'rerank', 'music.generate'],
+
+  // 常见 HTTP 错误 → 人话(402欠费/404未授权/400参数, 分得清; 适配器可覆盖补厂商私有码)
+  explainError(status, text) {
+    if (status === 401 || status === 403) return 'Key 无效或无权限, 检查 API Key';
+    if (status === 402 || /quota|billing|insufficient/i.test(text)) return '账户配额/余额不足, 去厂商控制台充值或换 Key';
+    if (status === 404 && /model/i.test(text)) return '模型不存在或当前套餐未授权, 重新拉取列表后从中选模型';
+    if (status === 400 && /voice/i.test(text)) return '音色不被该厂商接受, 换该厂商自己的音色名';
+    return '';
+  },
+
+  // 从 chat endpoint 派生其他端点(替换 /chat/completions 等结尾)
+  _baseEndpoint(provider) { return normalizeBase(provider.endpoint); },
+  _deriveEndpoint(provider, path) {
+    // path 形如 /chat/completions；优先走 joinCap 的 kind 映射，否则 base+path
+    const base = normalizeBase(provider.endpoint);
+    const p = path.startsWith('/') ? path : '/' + path;
+    return base + p;
+  },
+
+  buildChatRequest(provider, { messages, model, tools, response_format, stream, temperature }) {
+    // 多模态 content 数组 → OpenAI 格式(image_url with data URL); 纯文本/字符串原样
+    const conv = messages.map(msg => {
+      if (!Array.isArray(msg.content)) return msg;
+      const content = msg.content.map(part => {
+        const custom = this._mapPart && this._mapPart(part); // 子协议差异钩子(如 MiniMax: 音频当对话输入)
+        if (custom) return custom;
+        if (part.type === 'text') return { type: 'text', text: part.text || '' };
+        if (part.type === 'image' && part.data) return { type: 'image_url', image_url: { url: `data:${part.mimeType || 'image/png'};base64,${part.data}` } };
+        // OpenAI 兼容接口对 audio/video 输入支持各异, 降级为文本提示
+        if (['audio', 'video'].includes(part.type)) return { type: 'text', text: `[${part.type} 附件]` };
+        return { type: 'text', text: '' };
+      });
+      return { ...msg, content };
+    });
+    const body = {
+      model: model || provider.model,
+      messages: conv,
+      ...(stream ? { stream: true } : {}),
+      ...(tools ? { tools } : {}),
+      ...(response_format ? { response_format } : {}),
+      ...(temperature != null ? { temperature } : {}),
+    };
+    return {
+      url: this._deriveEndpoint(provider, '/chat/completions'),
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + provider.apiKey },
+      body: JSON.stringify(body),
+    };
+  },
+
+  parseChatReply(json) {
+    const msg = json.choices?.[0]?.message || {};
+    return { content: msg.content || '', tool_calls: msg.tool_calls, raw: json };
+  },
+
+  parseChatStreamChunk(chunk) {
+    const c = chunk.choices?.[0];
+    if (!c) return null;
+    const d = c.delta || {};
+    return { delta: d.content || '', reasoning: d.reasoning_content || '', tool_calls: d.tool_calls, finish_reason: c.finish_reason, raw: chunk };
+  },
+
+  buildModelsRequest(provider) {
+    return { url: this._deriveEndpoint(provider, '/models'), headers: { 'Authorization': 'Bearer ' + provider.apiKey } };
+  },
+
+  // 兼容 OpenAI / Ollama / 各家变体
+  parseModelsReply(json) {
+    const list = json.data || json.models || [];
+    return list.map(m => m.id || m.name || m).filter(Boolean).sort();
+  },
+
+  // 生图: 标准 OpenAI /images/generations (DALL-E 风格)
+  buildImageRequest(provider, { prompt, model }) {
+    const url = this._deriveEndpoint(provider, '/images/generations');
+    const body = { model: model || provider.imageModel || provider.model || 'dall-e-3', prompt, n: 1, response_format: 'b64_json' };
+    return { url, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + provider.apiKey }, body: JSON.stringify(body) };
+  },
+  parseImageReply(json) {
+    const d = json.data?.[0] || {};
+    const data = d.b64_json;
+    const urlImg = d.url;
+    if (!data && !urlImg) throw new Error('生图未返回数据');
+    return { image: { type: 'image', mimeType: 'image/png', data, url: urlImg }, text: json.data?.[0]?.revised_prompt || '', raw: json };
+  },
+
+  // 图片编辑: OpenAI /images/edits（multipart）；也兼容 JSON+base64 的中转站
+  buildImageEditRequest(provider, { prompt, model, image, mask }) {
+    const url = this._deriveEndpoint(provider, '/images/edits');
+    const m = model || provider.imageEditModel || provider.imageModel || 'dall-e-2';
+    const img = image || {};
+    const mime = String(img.mimeType || 'image/png').split(';')[0];
+    // 优先 multipart（官方形态）
+    if (img.data && typeof FormData !== 'undefined') {
+      const bin = atob(img.data); const u8 = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+      const fd = new FormData();
+      fd.append('image', new Blob([u8], { type: mime }), 'image.' + (mime.split('/')[1] || 'png'));
+      fd.append('prompt', prompt || '');
+      fd.append('model', m);
+      fd.append('response_format', 'b64_json');
+      if (mask && mask.data) {
+        const mb = atob(mask.data); const mu = new Uint8Array(mb.length);
+        for (let i = 0; i < mb.length; i++) mu[i] = mb.charCodeAt(i);
+        fd.append('mask', new Blob([mu], { type: 'image/png' }), 'mask.png');
+      }
+      return { url, headers: { 'Authorization': 'Bearer ' + provider.apiKey }, body: fd };
+    }
+    // JSON 回退（部分中转）
+    const body = { model: m, prompt, image: img.data ? ('data:' + mime + ';base64,' + img.data) : img.url, response_format: 'b64_json' };
+    return { url, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + provider.apiKey }, body: JSON.stringify(body) };
+  },
+
+  // Embedding: /v1/embeddings
+  buildEmbeddingRequest(provider, { input, model, dimensions }) {
+    const url = this._deriveEndpoint(provider, '/embeddings');
+    const body = {
+      model: model || provider.embeddingModel || 'text-embedding-3-small',
+      input: input,
+      ...(dimensions ? { dimensions } : {}),
+    };
+    return { url, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + provider.apiKey }, body: JSON.stringify(body) };
+  },
+  parseEmbeddingReply(json) {
+    const rows = json.data || [];
+    if (!rows.length && !json.embedding) throw new Error('嵌入未返回向量');
+    if (json.embedding) return { embedding: json.embedding, embeddings: [json.embedding], raw: json };
+    const embeddings = rows.map(r => r.embedding).filter(Boolean);
+    return { embedding: embeddings[0] || [], embeddings, raw: json };
+  },
+
+  // Rerank: 常见 /v1/rerank 或 /v1/reranking
+  buildRerankRequest(provider, { query, documents, model, top_n }) {
+    let url = this._deriveEndpoint(provider, '/rerank');
+    const body = {
+      model: model || provider.rerankModel || 'rerank',
+      query: query || '',
+      documents: documents || [],
+      ...(top_n != null ? { top_n } : {}),
+    };
+    return { url, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + provider.apiKey }, body: JSON.stringify(body) };
+  },
+  parseRerankReply(json) {
+    const results = json.results || json.data || [];
+    if (!Array.isArray(results) || !results.length) throw new Error('重排未返回结果');
+    return { results, raw: json };
+  },
+
+  // TTS: 标准 OpenAI /audio/speech (返回二进制音频, 不是 base64)
+  buildTTSRequest(provider, { text, model, voice }) {
+    const url = this._deriveEndpoint(provider, '/audio/speech');
+    const body = { model: model || provider.ttsModel || 'tts-1', input: text, voice: pickVoice(voice, provider, 'alloy'), response_format: 'mp3' };
+    return { url, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + provider.apiKey }, body: JSON.stringify(body), _binary: true };
+  },
+  // /audio/speech 返回的是二进制流, LLM 层会把它转 base64 后调这里
+  parseTTSReply(arg) {
+    // arg 可能是 {audioBase64} (LLM 层转好的) 或直接 json(错误)
+    if (arg && arg.audioBase64) return { audio: { type: 'audio', mimeType: 'audio/mp3', data: arg.audioBase64 }, raw: {} };
+    throw new Error('TTS 未返回音频数据');
+  },
+
+  // STT: 标准 OpenAI /audio/transcriptions (multipart); STT 模型必填(聊天模型不能转写)
+  buildSTTRequest(provider, { audio, model, prompt }) {
+    const m = model || provider.sttModel;
+    if (!m) throw new Error('语音转写需要 STT 模型: 在「专用任务模型」里填 sttModel(如 whisper-1), 或调用时传 model');
+    const mime = String(audio.mimeType || 'audio/webm').split(';')[0];
+    const bin = atob(audio.data || ''); const u8 = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    const fd = new FormData();
+    fd.append('file', new Blob([u8], { type: mime }), 'audio.' + (mime.split('/')[1] || 'webm'));
+    fd.append('model', m);
+    if (prompt) fd.append('prompt', prompt); // whisper 系 prompt 提准
+    return { url: this._deriveEndpoint(provider, '/audio/transcriptions'), headers: { 'Authorization': 'Bearer ' + provider.apiKey }, body: fd };
+  },
+  parseSTTReply(json) { return { text: String(json.text || '').trim(), raw: json }; },
+
+  // 音乐：通用兼容形态（多数中转用 /music/generations；body 含 prompt/lyrics/model）
+  buildMusicRequest(provider, { prompt, lyrics, model, title }) {
+    const url = this._deriveEndpoint(provider, '/music/generations');
+    const body = {
+      model: model || provider.musicModel || 'music',
+      prompt: prompt || '',
+      ...(lyrics ? { lyrics } : {}),
+      ...(title ? { title } : {}),
+    };
+    return { url, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + provider.apiKey }, body: JSON.stringify(body) };
+  },
+  parseMusicReply(json) {
+    // 兼容几种常见返回：data[].url / audio / audio_base64 / output
+    const d = (json.data && json.data[0]) || json.output || json;
+    const b64 = d.audio_base64 || d.audioBase64 || d.b64_json || (d.audio && d.audio.data);
+    const url = d.url || d.audio_url || (d.audio && d.audio.url);
+    if (!b64 && !url) throw new Error('音乐未返回音频: ' + JSON.stringify(json).slice(0, 180));
+    return { audioBase64: b64 || '', url: url || '', mimeType: d.mimeType || 'audio/mpeg', raw: json };
+  },
+};
+/* 本地模型协议 */
+const LocalProvider = {
+  protocol: 'local',
+  label: '本地模型',
+  order: 1.5, // 紧跟 OpenAI 兼容之后
+  defaultEndpoint: 'http://127.0.0.1:11434/v1/chat/completions',
+  capabilities: ['text.chat', 'image.input'], // 只诚实声明会的: 本地无 TTS/生图, 不假装
+  explainError(status, text) {
+    if (status === 403) return '本地服务拒绝跨域: 给 Ollama 设 OLLAMA_ORIGINS=* 或装 Colony Bridge 插件走中继';
+    return OpenAICompatibleProvider.explainError(status, text);
+  },
+  _deriveEndpoint: OpenAICompatibleProvider._deriveEndpoint,
+  buildChatRequest: OpenAICompatibleProvider.buildChatRequest, // Bearer local 占位头对本地服务无害
+  parseChatReply: OpenAICompatibleProvider.parseChatReply,
+  parseChatStreamChunk: OpenAICompatibleProvider.parseChatStreamChunk,
+  buildModelsRequest: OpenAICompatibleProvider.buildModelsRequest,
+  parseModelsReply: OpenAICompatibleProvider.parseModelsReply,
+};
+/* ── 设置区: renderProviderChips / renderProviderDetail(协议下拉从适配器注册表生成; 样式统一在顶部组件库) ── */
+const changed = () => ctx.emit('providers:changed');
+
+async function renderProviderChips(secRoot) {
+  const providers = await Settings.getProviders();
+  const activeId = await Settings.getActiveProviderId();
+  const chips = secRoot.querySelector('#provider-chips');
+  chips.innerHTML = '';
+  for (const p of providers) {
+    const chip = document.createElement('button');
+    chip.className = 'prov-chip' + (p.id === activeId ? ' active' : '') + (p.verified && p.verified['text.chat'] ? ' tested' : '');
+    chip.dataset.pid = p.id;
+    chip.innerHTML = '<span class="prov-dot"></span>' + esc(p.name || '(未命名)');
+    chip.onclick = () => renderProviderDetail(secRoot, p.id);
+    chips.appendChild(chip);
+  }
+  secRoot.querySelector('#prov-add-btn').onclick = async () => {
+    const p = await Settings.addProvider({ name: '新厂商', protocol: 'openai-compatible', endpoint: 'https://api.openai.com/v1/chat/completions', apiKey: '', model: '' });
+    changed();
+    await renderProviderChips(secRoot);
+    renderProviderDetail(secRoot, p.id);
+  };
+  if (providers.length) renderProviderDetail(secRoot, activeId || providers[0].id);
+  else secRoot.querySelector('#provider-detail').innerHTML = '<p class="settings-hint" style="padding:16px 0">点 + 添加一个 AI 厂商 (DeepSeek/MiniMax/Gemini/Claude/Ollama…)</p>';
+}
+
+async function renderProviderDetail(secRoot, id) {
+  const all = await Settings.getProviders();
+  const p = all.find(x => x.id === id);
+  if (!p) return;
+  const activeId = await Settings.getActiveProviderId();
+  // 跨厂商已拉模型，按能力筛选候选（数据驱动）
+  const pool = await allProvidersModels();
+  const localModels = p.models || [];
+  const poolOrLocal = pool.length ? pool : localModels;
+  const opts = (arr) => (arr || []).map(m => `<option value="${esc(m)}">`).join('');
+  const dlChat = opts(filterModelsByCat(localModels.length ? localModels : poolOrLocal, 'chat'));
+  const capFieldHtml = CAP_FIELDS.map(f => {
+    const dlId = 'dl-cap-' + f.field;
+    const dl = opts(filterModelsByCat(poolOrLocal, f.cat));
+    return `<datalist id="${dlId}">${dl}</datalist>
+        <label class="settings-label">${esc(f.label)}（→ ${esc(f.path)}）</label>
+        <input type="text" id="s-cap-${esc(f.field)}" class="form-input mono" list="${dlId}" value="${esc(p[f.field] || '')}" placeholder="从已拉模型中选或手填" data-cap-field="${esc(f.field)}">`;
+  }).join('');
+  const testOpts = ['<option value="text.chat">测试: 文本</option>'].concat(
+    CAP_FIELDS.filter(f => f.test).map(f => `<option value="${esc(f.cap)}">测试: ${esc(f.label)}</option>`)
+  ).join('');
+  // 能力台账: 全厂商统一(测通哪项亮哪项)
+  const capChips = Object.keys(CAP_LABELS).map(c => {
+    const v = (p.verified || {})[c];
+    return `<span class="ai-cap-chip${v ? ' ok' : ''}" data-cap="${esc(c)}" title="${v ? esc('已测通: ' + (v.model || '默认模型') + ' · ' + new Date(v.at).toLocaleString() + ' · 双击熄灭(模型过期/失效时)') : '未实测'}">${v ? '✓ ' : ''}${CAP_LABELS[c]}</span>`;
+  }).join('');
+  const root = secRoot.querySelector('#provider-detail');
+  root.innerHTML = `
+    <label class="settings-label">显示名称</label>
+    <div class="row-input">
+      <input type="text" id="s-name" class="form-input" value="${esc(p.name)}" placeholder="OpenAI / DeepSeek / 我的私有 API ...">
+      <button class="danger-btn" id="s-del" title="删除此厂商">🗑</button>
+    </div>
+    <label class="settings-label">协议类型</label>
+    <select id="s-protocol" class="form-input">
+      ${LLM.protocolList().map(o => `<option value="${esc(o.protocol)}" ${p.protocol === o.protocol ? 'selected' : ''}>${esc(o.label)}</option>`).join('')}
+    </select>
+    <div class="ai-cap-chips" title="能力台账: 绿=真实测通(悬停看模型与时间)">${capChips}</div>
+    <label class="settings-label">API 端点 URL（填 base，不要带能力后缀）</label>
+    <input type="text" id="s-endpoint" class="form-input mono" value="${esc(p.endpoint || '')}" placeholder="https://api.xxx.com/v1">
+    <p class="settings-hint">推荐只填到版本前缀，例如 <code>https://api.xxx.com/v1</code>。程序会按能力自动拼 <code>/chat/completions</code>、<code>/images/generations</code>、<code>/embeddings</code> 等。若误填了完整后缀也会自动剥掉。</p>
+    <label class="settings-label">API Key</label>
+    <input type="password" id="s-key" class="form-input mono" value="${esc(p.apiKey || '')}" placeholder="${p.protocol === 'local' ? '本地端点无需 Key(已自动占位)' : 'sk-... 或 AIza...'}">
+    <details class="deploy-details" ${p.proxy && p.proxy.enabled ? 'open' : ''}>
+      <summary>🛡 CORS 代理 ${p.proxy && p.proxy.enabled ? '<span style="color:var(--accent);font-size:11px;margin-left:6px">已启用</span>' : ''}</summary>
+      <div class="deploy-content">
+        <div class="cors-toggle-row">
+          <input type="checkbox" id="s-proxy-enable" ${p.proxy && p.proxy.enabled ? 'checked' : ''}>
+          <span>启用 CORS 代理 (浏览器直连厂商遇到跨域时用)</span>
+        </div>
+        <input type="text" id="s-proxy-url" class="form-input mono" value="${esc((p.proxy && p.proxy.baseURL) || '')}" placeholder="https://your-worker.workers.dev/">
+        <p class="settings-hint">部署一个反代 Worker, 代理给当前 provider 用。调用方式: 代理地址 + ?target=编码后的目标URL。</p>
+      </div>
+    </details>
+    <div class="cors-box" style="margin-top:12px">
+      <div class="cors-toggle-row">
+        <input type="checkbox" id="s-allow-sdk" ${p.allowMiniAppSDK ? 'checked' : ''}>
+        <div>
+          <div style="font-weight:500">🔓 允许 mini app 通过 SDK 调用</div>
+          <div class="settings-hint" style="margin-top:2px">勾选后 mini app 里的 colony.ai.chat() 可用此 provider。默认关闭保护 Key。</div>
+        </div>
+      </div>
+    </div>
+    <label class="settings-label">文本主模型</label>
+    <div class="model-row">
+      <select id="s-model-select" class="form-input">
+        <option value="">— 未拉取, 从下拉选或手动输入 —</option>
+        ${filterModelsByCat(p.models || [], 'chat').map(m => `<option value="${esc(m)}" ${m === p.model ? 'selected' : ''}>${esc(m)}</option>`).join('')}
+      </select>
+      <button class="icon-pill-btn" id="s-fetch-models" title="用当前 Key 拉取模型列表">📥 拉取列表</button>
+    </div>
+    <input type="text" id="s-model" class="form-input mono" list="dl-chat-models" value="${esc(p.model || '')}" placeholder="或手动输入文本模型名" style="margin-top:8px">
+    <details class="task-models" style="margin-top:10px" open>
+      <summary style="cursor:pointer;font-size:12px;color:var(--text-muted)">按能力配置模型（拉取列表后可从下拉选，也可手填）</summary>
+      <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px">
+        <p class="settings-hint">各能力下拉优先展示所有已拉取厂商中名称像该类型的模型；也可手填。文本主模型以当前厂商列表为主。</p>
+        <datalist id="dl-chat-models">${dlChat}</datalist>
+        ${capFieldHtml}
+        <div class="model-row">
+          <input type="text" id="s-tts-voice" class="form-input mono" list="dl-voice" value="${esc(p.ttsVoice || '')}" placeholder="音色（可选，测语音时用）">
+          <button class="icon-pill-btn" id="s-fetch-voices" title="拉取音色">🎤 拉音色</button>
+        </div>
+        <datalist id="dl-voice"></datalist>
+        <label class="settings-label">并发数</label>
+        <input type="number" id="s-concurrency" class="form-input" min="1" max="64" value="${p.concurrency || ''}" placeholder="留空默认 8">
+        <label class="settings-label">超时(秒)</label>
+        <input type="number" id="s-timeout" class="form-input" min="10" max="900" value="${p.timeout || ''}" placeholder="留空默认（本地 300 / 云 120）">
+      </div>
+    </details>
+    <details class="deploy-details" style="margin-top:10px" ${Object.keys(p.notes || {}).length ? 'open' : ''}>
+      <summary>📝 模型标注</summary>
+      <div class="deploy-content">
+        <p class="settings-hint" style="margin-top:4px">记录某模型的脾气(如「长文会截断」「回答在思考字段」), 你能看, agent 选模型时也会参考。</p>
+        <div id="s-notes-list"></div>
+        <div class="model-row" style="margin-top:8px">
+          <input type="text" id="s-note-m" class="form-input mono" placeholder="模型名" style="max-width:42%">
+          <input type="text" id="s-note-t" class="form-input" placeholder="一句话标注">
+          <button class="icon-pill-btn" id="s-note-add">＋ 添加</button>
+        </div>
+      </div>
+    </details>
+    <div id="s-test-result" class="test-result hidden"></div>
+    <div style="margin-top:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+      <select id="s-test-task" class="form-input" style="width:auto;padding:8px">${testOpts}</select>
+      <button class="ghost-btn" id="s-test" style="padding:8px 16px;font-size:12px">⚡ 测试</button>
+      <button class="ghost-btn" id="s-set-active" style="padding:8px 16px;font-size:12px" title="不指定厂商的调用都走默认厂商">${p.id === activeId ? '✓ 默认厂商' : '设为默认'}</button>
+    </div>
+  `;
+  const get = (s) => root.querySelector(s);
+  const result = get('#s-test-result');
+  const showResult = (msg, cls) => { result.className = 'test-result ' + cls; result.textContent = msg; };
+  const persist = async (patch) => { const r = await Settings.updateProvider(id, patch); changed(); return r; };
+  // 徽章双击熄灭: 模型过期/曾通现不通时手动归零, 再测即可重新点亮
+  root.querySelectorAll('.ai-cap-chip').forEach(el => el.ondblclick = async () => {
+    if (!el.classList.contains('ok')) return;
+    await persist({ verified: { [el.dataset.cap]: null } });
+    el.classList.remove('ok'); el.textContent = CAP_LABELS[el.dataset.cap]; el.title = '未实测';
+    if (el.dataset.cap === 'text.chat') { const bc = secRoot.querySelector('.prov-chip[data-pid="' + id + '"]'); if (bc) bc.classList.remove('tested'); }
+  });
+  // 模型标注: 逐条可改(清空即删)可删, 底部添加; agent 经 ai.models 读同一份
+  let curNotes = { ...(p.notes || {}) };
+  const drawNotes = () => {
+    get('#s-notes-list').innerHTML = Object.entries(curNotes).map(([k, v]) =>
+      `<div class="model-row" style="margin-top:6px"><input class="form-input mono" value="${esc(k)}" disabled style="max-width:42%;opacity:.7"><input class="form-input" data-nk="${esc(k)}" value="${esc(v)}"><button class="danger-btn" data-nd="${esc(k)}" title="删除此标注">🗑</button></div>`).join('')
+      || '<p class="settings-hint" style="margin:6px 0 0">还没有标注。</p>';
+    get('#s-notes-list').querySelectorAll('[data-nk]').forEach(inp => inp.onchange = async () => {
+      const k = inp.dataset.nk, v = inp.value.trim();
+      if (v) { curNotes[k] = v; await persist({ notes: { [k]: v } }); }
+      else { delete curNotes[k]; await persist({ notes: { [k]: null } }); drawNotes(); }
+    });
+    get('#s-notes-list').querySelectorAll('[data-nd]').forEach(b => b.onclick = async () => {
+      delete curNotes[b.dataset.nd]; await persist({ notes: { [b.dataset.nd]: null } }); drawNotes();
+    });
+  };
+  drawNotes();
+  get('#s-note-add').onclick = async () => {
+    const m = get('#s-note-m').value.trim(), t = get('#s-note-t').value.trim();
+    if (!m || !t) return;
+    curNotes[m] = t; await persist({ notes: { [m]: t } });
+    get('#s-note-m').value = ''; get('#s-note-t').value = ''; drawNotes();
+  };
+
+  get('#s-name').onchange = async (e) => { await persist({ name: e.target.value.trim() }); renderProviderChips(secRoot); };
+  get('#s-protocol').onchange = async (e) => {
+    // 切协议 → 端点换成该协议的默认全 URL(单一源: 适配器注册表), 避免留下错配地址; 本地协议免 Key 自动占位
+    await persist({ protocol: e.target.value, endpoint: LLM.protocolDefault(e.target.value) || p.endpoint, ...(e.target.value === 'local' && !p.apiKey ? { apiKey: 'local' } : {}) });
+    renderProviderDetail(secRoot, id);
+  };
+  get('#s-endpoint').onchange = (e) => {
+    const ep = normalizeBase(e.target.value);
+    e.target.value = ep;
+    persist({ endpoint: ep });
+  };
+  get('#s-key').onchange = (e) => persist({ apiKey: e.target.value });
+  get('#s-allow-sdk').onchange = (e) => persist({ allowMiniAppSDK: e.target.checked });
+  get('#s-model').onchange = (e) => persist({ model: e.target.value.trim() });
+  get('#s-model-select').onchange = (e) => { if (e.target.value) { get('#s-model').value = e.target.value; persist({ model: e.target.value }); } };
+  CAP_FIELDS.forEach(f => {
+    const el = get('#s-cap-' + f.field);
+    if (el) el.onchange = (e) => persist({ [f.field]: e.target.value.trim() });
+  });
+  get('#s-tts-voice').onchange = (e) => persist({ ttsVoice: e.target.value.trim() });
+  get('#s-fetch-voices').onclick = async () => {
+    showResult('⋯ 拉取音色中...', 'ok');
+    try {
+      const vs = await listVoices(id);
+      if (!vs.length) { showResult('✗ 该协议没有可拉的音色表', 'bad'); return; }
+      get('#dl-voice').innerHTML = vs.map(v => `<option value="${esc(v[0])}">${esc(v[1] || v[0])}</option>`).join('');
+      showResult('✓ 拉到 ' + vs.length + ' 个音色, 在音色框下拉选一个, 再测「语音」听效果', 'ok');
+    } catch (e) { showResult('✗ ' + e.message, 'bad'); }
+  };
+  get('#s-concurrency').onchange = (e) => { const n = parseInt(e.target.value, 10); persist({ concurrency: (n >= 1 && n <= 64) ? n : undefined }); };
+  get('#s-timeout').onchange = (e) => { const n = parseInt(e.target.value, 10); persist({ timeout: (n >= 10 && n <= 900) ? n : undefined }); };
+  get('#s-proxy-enable').onchange = (e) => persist({ proxy: { enabled: e.target.checked, baseURL: get('#s-proxy-url').value.trim() } });
+  get('#s-proxy-url').onchange = (e) => persist({ proxy: { enabled: get('#s-proxy-enable').checked, baseURL: e.target.value.trim() } });
+
+  get('#s-fetch-models').onclick = async () => {
+    showResult('⋯ 拉取中...', 'ok');
+    try {
+      const models = await LLM.detectModels(id);
+      await persist({ models });
+      renderProviderDetail(secRoot, id);   // 重新渲染 → 模型出现在下拉和各 datalist 里
+      secRoot.querySelector('#s-test-result').className = 'test-result ok';
+      secRoot.querySelector('#s-test-result').textContent = '✓ 拉到 ' + models.length + ' 个模型, 已填入下拉, 选一个再点测试';
+    } catch (e) { showResult('✗ ' + e.message, 'bad'); }
+  };
+  get('#s-test').onclick = async () => {
+    const model = get('#s-model').value.trim() || get('#s-model-select').value;
+    if (model) await persist({ model });
+    const task = get('#s-test-task').value;
+    const tmSelMap = { 'text.chat': '#s-model' };
+    CAP_FIELDS.forEach(f => { tmSelMap[f.cap] = '#s-cap-' + f.field; });
+    const tmSel = tmSelMap[task];
+    const tm = tmSel ? get(tmSel).value.trim() : '';
+    if (tm && CAP_TASK_MODEL[task]) await persist({ [CAP_TASK_MODEL[task]]: tm });
+    const useM = tm || (task === 'text.chat' ? model : '') || undefined;
+    showResult('⋯ 测试中' + (/video|music/.test(task) ? '(较慢, 请稍候)' : '') + '...', 'ok');
+    try {
+      const r = await LLM.testCapability(id, task, useM); // 测通写台账(与 agent 的 ai.test 同一套), 不切活跃
+      showResult('✓ ' + CAP_LABELS[task] + '测通 (模型: ' + (useM || '默认') + '): ' + r.detail, 'ok');
+      const el = root.querySelector('.ai-cap-chip[data-cap="' + task + '"]'); // 原地点亮, 不打断面板
+      if (el && !el.classList.contains('ok')) { el.classList.add('ok'); el.textContent = '✓ ' + CAP_LABELS[task]; }
+      if (task === 'text.chat') { const bc = secRoot.querySelector('.prov-chip[data-pid="' + id + '"]'); if (bc) bc.classList.add('tested'); }
+      changed();
+    } catch (e) { showResult('✗ ' + e.message, 'bad'); }
+  };
+  get('#s-set-active').onclick = async () => { await Settings.setActiveProvider(id); changed(); renderProviderChips(secRoot); };
+  get('#s-del').onclick = async () => {
+    if (!confirm('删除「' + p.name + '」?')) return;
+    await Settings.deleteProvider(id);
+    changed();
+    renderProviderChips(secRoot);
+  };
+}
+
+/* ── 音色模板（通用 OpenAI 兼容表；厂商差异用手填） ── */
+const OAI_VOICES = [['alloy', '中性'], ['nova', '明亮女声'], ['shimmer', '柔和女声'], ['coral', '活泼女声'], ['sage', '平和'],
+  ['echo', '男声'], ['onyx', '低沉男声'], ['ash', '沉稳男声'], ['fable', '英式叙述'], ['verse', '抒情']];
+async function listVoices(providerId) {
+  const all = await Settings.getProviders();
+  const p = providerId && all.find(x => x.id === providerId);
+  if (!p) return [];
+  return OAI_VOICES;
+}
+
+/* ── 配置种子: 保存→随块源码出走→导入方一次性播种(运输走现成的 saveBlock 覆盖层/wrapBlock 导出/adopt 检疫, 零新机制) ── */
+const seedSig = o => { const s = JSON.stringify(o); let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0; return h + ':' + s.length; };
+async function applySeed() { // 同指纹只播一次(不碾用户后改); 重新导出的新种子指纹变→自动升级; 按厂商名合并, 不删接收方已有厂商
+  if (!PROVIDER_SEED || !Array.isArray(PROVIDER_SEED.providers) || !PROVIDER_SEED.providers.length) return;
+  const sig = seedSig(PROVIDER_SEED);
+  if ((await Store.settings.get('ai.seedApplied', null)) === sig) return;
+  for (const sp of PROVIDER_SEED.providers) {
+    if (!sp.name) continue;
+    const patch = { ...sp }; delete patch.id; // id 不随种子走: 同名合并/新名新增(判据与 ai.configure 一致), 防撞 id
+    const old = (await Settings.getProviders()).find(x => x.name === sp.name);
+    if (old) await Settings.updateProvider(old.id, patch); else await Settings.addProvider(patch);
+  }
+  if (PROVIDER_SEED.activeName) { const p = (await Settings.getProviders()).find(x => x.name === PROVIDER_SEED.activeName); if (p) await Settings.setActiveProvider(p.id); }
+  await Store.settings.set('ai.seedApplied', sig);
+  changed();
+}
+async function saveSeedToBlock() { // 「打包配置版」: 种子写进本块源码覆盖层(saveBlock 热替换自己) → wrapBlock 直接出带配置的独立 Petri
+  const provs = await Settings.getProviders();
+  if (!provs.length) return alert('还没有配置任何厂商');
+  const activeId = await Settings.getActiveProviderId();
+  const seed = { providers: provs.map(p => { const c = { ...p }; delete c.id; return c; }), activeName: (provs.find(p => p.id === activeId) || {}).name || null };
+  if (!confirm('把 ' + provs.length + ' 个厂商的配置(含明文 API Key 与已测通台账)写进本块源码, 并导出自带配置的独立 Petri?\n\n对方导入并启用后拿来即用。\n⚠ 导出文件含明文 Key, 只给信任的人。')) return;
+  const b = ctx.stem.getBlock(ctx.id);
+  const json = JSON.stringify(seed).replace(/</g, '\\u003c'); // 转义 <: 块源码不得含字面闭合脚本标签(validateCode 拒)
+  const nc = b.code.replace(/const PROVIDER_SEED = \/\*⚘SEED\*\/[\s\S]*?\/\*⚘SEED\*\//, () => 'const PROVIDER_SEED = /*⚘SEED*/' + json + '/*⚘SEED*/'); // 替换函数防 Key 里的 $ 被当替换模式
+  if (nc === b.code) return alert('种子槽标记(⚘SEED)丢失, 无法写入 — 块源码被改动过?');
+  await Store.settings.set('ai.seedApplied', seedSig(seed)); // 先记指纹: 本机热替换重启后不重播自己
+  try { await ctx.stem.saveBlock(ctx.id, nc); } catch (e) { return alert('写入源码失败: ' + e.message); }
+  try { ctx.stem.wrapBlock(ctx.id); } catch (e) { alert('配置已写入源码, 但自动导出失败(' + e.message + ') — 去 源码管理→导出本块 手动导出'); }
+}
+
+/* ── 云端网关（最简版）: 把本地厂商配置同步到 Cloudflare Worker ── */
+const CLOUD_GATEWAY_KEY = 'ai.cloudGateway';
+const SIMPLE_WORKER_CODE = `export default {
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    const cors = {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'GET, POST, PUT, OPTIONS',
+      'Access-Control-Allow-Headers': '*',
+      'Access-Control-Max-Age': '86400',
+    };
+    if (request.method === 'OPTIONS') {
+      return new Response(null, { status: 204, headers: cors });
+    }
+    if (url.pathname === '/admin/sync' && request.method === 'POST') {
+      try {
+        const body = await request.json();
+        if (!body.models || typeof body.models !== 'object') {
+          return json({ error: 'models object required' }, 400, cors);
+        }
+        await env.MODELS_KV.put('models', JSON.stringify(body.models));
+        return json({ ok: true, count: Object.keys(body.models).length, models: Object.keys(body.models) }, 200, cors);
+      } catch (e) {
+        return json({ error: e.message }, 500, cors);
+      }
+    }
+    if (url.pathname === '/admin/status') {
+      const raw = await env.MODELS_KV.get('models');
+      const models = raw ? JSON.parse(raw) : {};
+      return json({ ok: true, modelCount: Object.keys(models).length, models: Object.keys(models) }, 200, cors);
+    }
+    if ((url.pathname === '/models' || url.pathname === '/v1/models') && request.method === 'GET') {
+      const raw = await env.MODELS_KV.get('models');
+      const models = raw ? JSON.parse(raw) : {};
+      const data = Object.keys(models).map(id => ({
+        id, object: 'model', created: Math.floor(Date.now() / 1000), owned_by: 'colony-gateway'
+      }));
+      return json({ object: 'list', data }, 200, cors);
+    }
+    try {
+      const bodyText = await request.text();
+      let body = {};
+      if (bodyText) {
+        try { body = JSON.parse(bodyText); } catch (e) { /* allow empty */ }
+      }
+      const modelName = body.model || url.searchParams.get('model');
+      if (!modelName) {
+        return json({ error: 'model is required (in body or query)' }, 400, cors);
+      }
+      const raw = await env.MODELS_KV.get('models');
+      const MODELS = raw ? JSON.parse(raw) : {};
+      const entry = MODELS[modelName];
+      if (!entry) {
+        return json({ error: \`Model "\${modelName}" not found\`, available: Object.keys(MODELS) }, 400, cors);
+      }
+      const path = url.pathname;
+      let capability = 'chat';
+      if (/\/images\/edits/i.test(path)) capability = 'imageEdit';
+      else if (/image|imagen|generation/i.test(path)) capability = 'image';
+      else if (/audio\/speech|tts|voice/i.test(path)) capability = 'tts';
+      else if (/transcription|stt|asr/i.test(path)) capability = 'stt';
+      else if (/embedding/i.test(path)) capability = 'embedding';
+      else if (/rerank/i.test(path)) capability = 'rerank';
+      else if (/video|veo|hailuo/i.test(path)) capability = 'video';
+      else if (/music|song/i.test(path)) capability = 'music';
+      else if (/chat|completion|message/i.test(path)) capability = 'chat';
+      const config =
+        (entry[capability]) ||
+        (entry.chat) ||
+        (entry.default) ||
+        (entry.url ? entry : null);
+      if (!config || !config.url || !config.key) {
+        return json({
+          error: \`Model "\${modelName}" has no config for "\${capability}"\`,
+          availableCapabilities: Object.keys(entry)
+        }, 400, cors);
+      }
+      let targetUrl = config.url;
+      if (config.base) {
+        targetUrl = config.base.replace(/\/+$/, '') + path + url.search;
+      }
+      if (config.model && body.model) body.model = config.model;
+      const upstream = await fetch(targetUrl, {
+        method: request.method,
+        headers: {
+          'Content-Type': request.headers.get('Content-Type') || 'application/json',
+          'Authorization': \`Bearer \${config.key}\`,
+        },
+        body: bodyText || undefined,
+      });
+      const newHeaders = new Headers(upstream.headers);
+      Object.entries(cors).forEach(([k, v]) => newHeaders.set(k, v));
+      return new Response(upstream.body, {
+        status: upstream.status,
+        statusText: upstream.statusText,
+        headers: newHeaders,
+      });
+    } catch (err) {
+      return json({ error: err.message }, 502, cors);
+    }
+  }
+};
+function json(data, status = 200, extra = {}) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...extra }
+  });
+}`;
+
+async function getCloudGateway() {
+  return (await Store.settings.get(CLOUD_GATEWAY_KEY, null)) || { workerURL: '' };
+}
+async function saveCloudGateway(patch) {
+  const cur = await getCloudGateway();
+  const next = { ...cur, ...patch };
+  await Store.settings.set(CLOUD_GATEWAY_KEY, next);
+  return next;
+}
+
+async function syncToCloud() {
+  const gw = await getCloudGateway();
+  const workerURL = (gw.workerURL || '').replace(/\/+$/, '');
+  if (!workerURL) return alert('请先填写 Worker 地址');
+
+  const provs = await Settings.getProviders();
+  const models = {};
+
+  // 根据 endpoint 推导能力完整 URL
+  function buildUrl(endpoint, protocol, kind) {
+    return joinCap(endpoint, kind);
+  }
+
+  for (const p of provs) {
+    if (!p.apiKey || !p.endpoint) continue;
+
+    const key = p.apiKey;
+    const protocol = p.protocol || 'openai-compatible';
+
+    // 主对话模型
+    const mainModel = p.model || (p.models && p.models[0]);
+    if (mainModel) {
+      if (!models[mainModel]) models[mainModel] = {};
+      models[mainModel].chat = {
+        url: buildUrl(p.endpoint, protocol, 'chat'),
+        key
+      };
+      models[mainModel].default = models[mainModel].chat;
+    }
+
+    // 把 models 列表里的其他模型也挂上同一套 chat 配置
+    if (Array.isArray(p.models)) {
+      for (const m of p.models) {
+        if (!m) continue;
+        if (!models[m]) models[m] = {};
+        if (!models[m].chat) {
+          models[m].chat = {
+            url: buildUrl(p.endpoint, protocol, 'chat'),
+            key
+          };
+          models[m].default = models[m].chat;
+        }
+      }
+    }
+
+    // 按 CAP_FIELDS 同步各能力
+    for (const f of CAP_FIELDS) {
+      const m = p[f.field];
+      if (!m) continue;
+      if (!models[m]) models[m] = {};
+      models[m][f.kind] = {
+        url: buildUrl(p.endpoint, protocol, f.kind),
+        key
+      };
+      if (!models[m].chat && !models[m].default) {
+        models[m].default = models[m][f.kind];
+      }
+    }
+  }
+
+  if (!Object.keys(models).length) {
+    return alert('没有可同步的模型（需要有 apiKey + endpoint + 模型名）');
+  }
+
+  try {
+    const res = await fetch(workerURL + '/admin/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ models }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || ('HTTP ' + res.status));
+    alert('同步成功！\n已推送 ' + data.count + ' 个模型：\n' + (data.models || []).join('\n'));
+  } catch (e) {
+    alert('同步失败: ' + e.message);
+  }
+}
+
+function deployWorkerCode() {
+  const code = SIMPLE_WORKER_CODE;
+  navigator.clipboard.writeText(code).then(() => {
+    alert('Worker 代码已复制到剪贴板！\n\n请打开 Cloudflare Workers 页面，新建或编辑 Worker，粘贴代码后 Deploy。\n记得绑定 KV：变量名 MODELS_KV');
+    window.open('https://dash.cloudflare.com/?to=/:account/workers', '_blank');
+  }).catch(() => {
+    prompt('请手动复制以下 Worker 代码：', code);
+  });
+}
+
+/* ── 装配与出口 ── */
+LLM.init();
+const seeded = applySeed().catch(e => console.warn('[ai] 配置种子播种失败(不阻断启动):', e && e.message));
+const api = {
+  chat: LLM.chat, chatStream: LLM.chatStream, generateMusic: LLM.generateMusic,
+  generateImage: LLM.generateImage, editImage: LLM.editImage, generateVideo: LLM.generateVideo,
+  generateAudio: LLM.generateAudio, transcribeAudio: LLM.transcribeAudio,
+  embed: LLM.embed, rerank: LLM.rerank,
+  getCapabilities: LLM.getCapabilities, detectModels: LLM.detectModels, testConnection: LLM.testConnection,
+  listVoices,
+  getProviders: LLM.allProviders, getActiveProviderId: Settings.getActiveProviderId, getActiveProvider: Settings.getActiveProvider, // getProviders=合并读(settings+外部来源); 设置 UI 编辑仍走 Settings 纯读
+  registerExternalSource: LLM.registerExternalSource, registerProvider: LLM.registerProvider, // RB-7: 桥等块注册端点大脑(记录来源+协议适配器)
+  updateProvider: async (id, patch) => { const r = await Settings.updateProvider(id, patch); changed(); return r; },
+  setActiveProvider: async (id) => { await Settings.setActiveProvider(id); changed(); },
+};
+/* ── miniapp SDK 能力全套注册(谁提供能力谁注册; 全部过 allowMiniAppSDK 权限闸) ──
+   provider 可传内部 id, 也可传名称或协议名, 这里统一解析。 */
+async function _findProv(v) { // id/名称/协议名 → provider(协议名优先取配了 Key 的)
+  const all = await LLM.allProviders();
+  return all.find(x => x.id === v) || all.find(x => x.name === v) || all.find(x => x.protocol === v && x.apiKey) || all.find(x => x.protocol === v) || null;
+}
+async function _withProv(a) {
+  a = Object.assign({}, a || {}); a.fromMiniApp = true;
+  if (!a.providerId && a.provider) { const p = await _findProv(a.provider); if (p) a.providerId = p.id; }
+  delete a.provider;
+  return a;
+}
+ctx.sdk.handle('ai.chat', async a => LLM.chat(await _withProv(a)));
+ctx.sdk.handle('ai.tts', async a => { // → {audioBase64|url, mimeType}
+  // 音色原样透传(字符串或 {voice_id,speed} 对象, 归一在各适配器)——修: 旧版在此包成 MiniMax 形对象, openai 系厂商收到对象必 400
+  const x = await _withProv(a);
+  if (x.speed && x.voice && typeof x.voice !== 'object') x.voice = { voice_id: x.voice, speed: x.speed }; // 只有显式传语速才组对象(MiniMax 消费)
+  return LLM.generateAudio(x);
+});
+ctx.sdk.handle('ai.transcribe', async a => { // 入参宽容: {audio:{data,mimeType}} 或 {audioBase64,mimeType} → {text}
+  const x = await _withProv(a);
+  if (!x.audio) x.audio = { data: x.audioBase64 || x.data, mimeType: x.mimeType || 'audio/webm' };
+  return LLM.transcribeAudio(x);
+});
+ctx.sdk.handle('ai.imagine', async a => LLM.generateImage(await _withProv(a)));
+ctx.sdk.handle('ai.video', async a => LLM.generateVideo(await _withProv(a)));
+ctx.sdk.handle('ai.music', async a => LLM.generateMusic(await _withProv(a))); // 与其余多模态同构: 统一层按能力分发+权限闸
+ctx.sdk.handleStream('ai.chatStream', async function* (a) { // 流式对话: 厂商选择与 ai.chat 同一条路(活跃厂商/模型直达), 权限闸在统一层
+  for await (const ch of LLM.chatStream(await _withProv(a))) yield { delta: (ch && ch.delta) || '', reasoning: (ch && ch.reasoning) || '' };
+});
+/* ai.models 三档: 不传参=现状形状(兼容存量); kind:'text'=测试通过的文本模型跨厂商聚合(与 AI 配置完全同步, 选择器现取现用);
+   kind:'multimodal'=文本之外全量(图/视频/音乐/TTS/STT 及归属厂商, 带 verified 实测标)。 */
+const NON_TEXT_RE = /(tts|speech|image|video|veo|imagen|embedding|music|hailuo|asr|audio|router)/i;
+ctx.sdk.handle('ai.models', async (a) => {
+  a = a || {};
+  if (a.kind === 'text') {
+    const settingsIds = new Set((await LLM.getCapabilities()).map(x => x.id));
+    const activeId = await Settings.getActiveProviderId();
+    const out = [];
+    for (const p of (await LLM.allProviders()).filter(p => p.allowMiniAppSDK && p.apiKey)) {
+      const isExternal = !settingsIds.has(p.id); // 桥端点成员: 活探在线即等效已验
+      if (!isExternal && !(p.verified && p.verified['text.chat'])) continue; // 与 AI 配置同步: 只给测试通过的
+      const ms = (p.models || []).filter(m => !NON_TEXT_RE.test(m));
+      if (p.model && !ms.includes(p.model)) ms.unshift(p.model);
+      // default 全局唯一 = 默认厂商的默认模型(应用下拉预选它)
+      for (const m of ms) out.push({ model: m, providerId: p.id, provider: p.name, protocol: p.protocol, default: p.id === activeId && m === p.model, ...(p.notes && p.notes[m] ? { note: p.notes[m] } : {}) });
+    }
+    return { kind: 'text', models: out };
+  }
+  if (a.kind === 'multimodal') {
+    const out = [];
+    for (const p of (await LLM.getCapabilities()).filter(p => p.allowMiniAppSDK && p.hasKey)) {
+      for (const c of p.capabilities) {
+        if (!(c in CAP_TASK_MODEL)) continue; // 只列文本之外的可产出能力(*.input 与 text.chat 不在此档)
+        const tm = p[CAP_TASK_MODEL[c]] || '';
+        const note = p.notes[tm] || p.notes[c] || '';
+        out.push({ capability: c, providerId: p.id, provider: p.name, protocol: p.protocol, model: tm, verified: !!(p.verified && p.verified[c]), ...(note ? { note } : {}) });
+      }
+    }
+    return { kind: 'multimodal', capabilities: out };
+  }
+  return (await LLM.allProviders())
+    .filter(p => p.allowMiniAppSDK && p.apiKey)
+    .map(p => ({ id: p.id, name: p.name, protocol: p.protocol, models: p.models || [], ttsModel: p.ttsModel || null, sttModel: p.sttModel || null }));
+});
+/* ── agent 自配置门面: 用户把 Key 交给 agent → agent 自己配厂商/测通路/记台账/标注模型问题。
+   配置与 Key 是用户资产 → miniapp 不可调(判据同 stem 软重启: context.miniappId)。 */
+const denyMiniApp = meta => { if (meta && meta.context && meta.context.miniappId) throw new Error('配置类能力不对 mini app 开放'); };
+ctx.sdk.handle('ai.configure', async (a, meta) => {
+  denyMiniApp(meta); a = a || {};
+  if (!a.name) throw new Error('缺 name(厂商显示名; 同名=更新, 新名=新增)');
+  const patch = {};
+  for (const k of ['protocol', 'endpoint', 'apiKey', 'model', 'ttsModel', 'sttModel', 'imageModel', 'imageEditModel', 'videoModel', 'embeddingModel', 'rerankModel', 'musicModel', 'ttsVoice', 'concurrency', 'timeout', 'allowMiniAppSDK', 'notes']) if (a[k] !== undefined) patch[k] = a[k];
+  const old = (await Settings.getProviders()).find(x => x.name === a.name);
+  if (patch.protocol === 'local' && !a.apiKey && !(old && old.apiKey)) patch.apiKey = 'local'; // 本地协议免 Key 占位(更新路径)
+  const p = old ? await Settings.updateProvider(old.id, patch)
+    : await Settings.addProvider({ name: a.name, allowMiniAppSDK: true, ...patch }); // agent 代配默认放行 SDK(用户交 Key 的意图就是用起来; 可显式传 false)
+  let models = '';
+  if (!old || patch.apiKey || patch.endpoint) { try { const ms = await LLM.detectModels(p.id); await Settings.updateProvider(p.id, { models: ms }); models = '拉到 ' + ms.length + ' 个模型'; } catch (e) { models = '模型列表拉取失败: ' + String(e.message).slice(0, 80); } }
+  changed();
+  return { id: p.id, name: p.name, protocol: p.protocol, endpoint: p.endpoint, ...(models ? { models } : {}) };
+});
+ctx.sdk.handle('ai.test', async (a, meta) => {
+  denyMiniApp(meta); a = a || {};
+  let id = a.providerId;
+  if (!id) { const p = await _findProv(a.provider || a.name); if (!p) throw new Error('找不到厂商: ' + (a.provider || a.name || '(未指定)')); id = p.id; }
+  const r = await LLM.testCapability(id, a.capability || a.task, a.model);
+  changed();
+  return r;
+});
+function petriHeadless(ctx, title, desc, render) { // 无壳兜底: Petri 离开界面设计也能独立渲染
+  const card = document.createElement('div');
+  card.className = 'cl-card';
+  card.style.cssText = 'max-width:760px;margin:18px auto;';
+  const head = document.createElement('div');
+  head.innerHTML = '<h3 style="margin:0 0 4px;font-size:15px">' + title + '</h3>' + (desc ? '<p class="settings-hint" style="margin:0 0 12px">' + desc + '</p>' : '');
+  card.appendChild(head);
+  const host = document.createElement('div');
+  card.appendChild(host);
+  ctx.root.appendChild(card);
+  try { render(host); } catch (e) { host.textContent = '渲染失败: ' + e.message; }
+}
+const AI_SECTION = {
+  id: 'ai', blockId: ctx.id, order: 1, title: '🤖 AI 模型',
+  desc: '配置多个 AI 厂商, 每个独立保存 Key 和模型。绿点表示已测通。拉取列表后从下拉选模型再测试。',
+  render(el) {
+    const solo = ctx.stem.hash === 'solo'; // 独立模式源码只读, 打包不可用(导入回 Colony 后可用)
+    el.innerHTML = '<label class="settings-label">服务商</label><div class="provider-bar"><div class="provider-chips" id="provider-chips"></div><button class="prov-add-btn" id="prov-add-btn" title="添加新厂商">+</button></div><div id="provider-detail">' +
+      '</div>' +
+      '<div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="icon-pill-btn" id="seed-pack"' + (solo ? ' disabled title="独立模式只读 — 导入回 Colony 后可打包"' : ' title="把全部厂商配置(含明文Key与点亮台账)写进本块源码并导出独立 Petri"') + '>💾 打包配置版</button>' +
+      '<span class="settings-hint">导出自带配置的 petri 文件, 别人导入启用后拿来即用(含明文 Key, 只给信任的人)</span></div>' +
+      // 云端网关（最简版）
+      '<div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--border)">' +
+      '<label class="settings-label">云端网关（最简版）</label>' +
+      '<p class="settings-hint" style="margin-bottom:10px">把本地配置的模型同步到 Cloudflare Worker，其他人只需填 Worker 地址即可使用全部模型（无需 Key）。</p>' +
+      '<input type="text" id="cloud-worker-url" class="form-input mono" placeholder="https://colony-llm-gateway.你的名字.workers.dev" style="margin-bottom:8px">' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button class="icon-pill-btn" id="btn-deploy-worker" title="复制最简 Worker 代码并打开 Cloudflare">☁️ 部署 Worker</button>' +
+      '<button class="icon-pill-btn" id="btn-sync-cloud" title="把当前厂商配置推送到 Worker">🔄 同步到云端</button>' +
+      '</div></div>';
+    renderProviderChips(el);
+    const sp = el.querySelector('#seed-pack'); if (sp && !solo) sp.onclick = saveSeedToBlock;
+
+    // 云端网关初始化与事件
+    (async () => {
+      const gw = await getCloudGateway();
+      const urlInput = el.querySelector('#cloud-worker-url');
+      if (urlInput) {
+        urlInput.value = gw.workerURL || '';
+        urlInput.onchange = () => saveCloudGateway({ workerURL: urlInput.value.trim() });
+      }
+      const btnDeploy = el.querySelector('#btn-deploy-worker');
+      if (btnDeploy) btnDeploy.onclick = deployWorkerCode;
+      const btnSync = el.querySelector('#btn-sync-cloud');
+      if (btnSync) btnSync.onclick = syncToCloud;
+    })();
+  },
+};
+const _ui = ctx.service('ui');
+if (_ui) _ui.registerSettingsSection(AI_SECTION);
+else seeded.then(() => petriHeadless(ctx, AI_SECTION.title, AI_SECTION.desc, el => AI_SECTION.render(el))); // 离开壳独立可用: 真实管理 Key/模型; 先等种子落库再画(solo 无事件重绘, 否则首开厂商条空)
+ctx.provide('llm', api);
+ctx.emit('llm:ready');
+return { api, dispose() { } };
+})
+</script>
+<script data-stem-shim="1">(function(){
+var SCR="scr"+"ipt";
+var re=new RegExp("<"+SCR+"\\s+type=\"colony/petri\"[^>]*>([\\s\\S]*?)</"+SCR+">");
+var m=re.exec(document.documentElement.outerHTML); if(!m){document.body.textContent="未找到块";return;}
+var hd=/\/\*BLOCK\*\/([\s\S]*?)\/\*CODE\*\//.exec(m[1]);
+var man=JSON.parse(hd[1].trim()); var code=m[1].slice(hd.index+hd[0].length);
+var pre="petri.solo."+man.id+":";
+var root=document.createElement("div"); root.setAttribute("data-block-id",man.id); document.body.appendChild(root);
+
+var ctx={ id:man.id, root:root,
+ css:function(t){var s=document.createElement("style");s.textContent=t;document.head.appendChild(s);},
+ listen:function(t,e,f){t.addEventListener(e,f);}, timer:function(f,ms,rep){return rep?setInterval(f,ms):setTimeout(f,
+ms);},
+ store:{ get:async function(k){var v=localStorage.getItem(pre+k);return v==null?undefined:JSON.parse(v);}, set:async function(k,
+v){localStorage.setItem(pre+k,JSON.stringify(v));}, del:async function(k){localStorage.removeItem(pre+k);}, list:async function(p){var o=[];
+for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key.indexOf(pre+(p||""))===0)o.push({key:key.slice(pre.length),
+value:JSON.parse(localStorage.getItem(key))});}return o;} },
+ kv:{ get:async function(k){var v=localStorage.getItem(pre+"kv:"+k);return v==null?undefined:JSON.parse(v);}, set:async function(k,
+v){localStorage.setItem(pre+"kv:"+k,JSON.stringify(v));}, del:async function(k){localStorage.removeItem(pre+"kv:"+k);
+}, list:async function(p){var o=[];for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key.indexOf(pre+"kv:"+(p||""))===0)o.push({key:key.slice((pre+"kv:").length),
+value:JSON.parse(localStorage.getItem(key))});}return o;} },
+ service:function(){return null;}, provide:function(){}, call:function(){throw new Error("独立模式无他块");},
+ on:function(){}, emit:function(){},
+ stem:{ hash:"solo", lineage:{gen:"独立"},
+  listBlocks:function(){return [{id:man.id,name:man.name,version:man.version,category:man.category,dirty:false,disabled:false}];
+},
+  getBlock:function(id){return id===man.id?{manifest:man,code:code,dirty:false}:null;},
+  readSource:function(){return document.documentElement.outerHTML;},
+  saveBlock:function(){return Promise.reject(new Error("独立模式只读, 导入回 Colony 后可改"));},
+  restoreFactory:function(){return Promise.resolve();}, setEnabled:function(){return Promise.resolve();},
+  molt:function(){throw new Error("独立 Petri 无新生能力, 导入回 Colony");}, wrapBlock:function(){},
+  unwrap:function(){return [];},
+  download:function(n,c){var u=URL.createObjectURL(new Blob([c],{type:"text/html;charset=utf-8"}));var a=document.createElement("a");
+a.href=u;a.download=n;document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u);
+},100);} },
+ runtime:null, sdk:{handle:function(){},handleStream:function(){}} };
+document.title=(man.name||man.id)+" · Colony Petri";
+try{ (0,eval)(code)(ctx); }catch(e){ root.textContent="块启动失败: "+e.message; }
+})();</script>
+</body>
+</html>

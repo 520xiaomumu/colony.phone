@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>界面设计</title>
+<style>
+:root{color-scheme:dark;
+--bg:#0a0a0a;
+--bg-2:#131313;
+--bg-3:#1a1a1a;
+--surface:rgba(255,255,255,.035);
+--surface-hover:rgba(255,255,255,.065);
+--border:rgba(255,255,255,.08);
+--border-strong:rgba(255,255,255,.18);
+--text:#fafafa;
+--text-muted:#8a8a8a;
+--text-dim:#555;
+--accent:#B5FF00;
+--accent-soft:rgba(181,255,0,.12);
+--warn:#FF9500;
+--danger:#FF4444;
+--radius:12px;
+--radius-lg:18px;
+--mono:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+--serif:"Fraunces",Georgia,serif}
+body{background:var(--bg);
+color:var(--text);
+font-family:var(--sans);
+margin:0}
+input,select,textarea,button{font-family:inherit}
+.cl-brand{font-family:var(--serif);
+font-style:italic;
+font-weight:700;
+letter-spacing:.4px}
+.cl-btn{background:var(--surface);
+border:1px solid var(--border-strong);
+color:var(--text);
+border-radius:8px;
+padding:6px 12px;
+font-size:12px;
+cursor:pointer}
+.cl-btn:hover{border-color:var(--accent);
+color:var(--accent)}
+.cl-btn-primary{background:var(--accent);
+border:0;
+color:#000;
+border-radius:8px;
+padding:6px 14px;
+font-size:12px;
+font-weight:600;
+cursor:pointer}
+.cl-input{background:var(--bg-2);
+border:1px solid var(--border);
+color:var(--text);
+border-radius:8px;
+padding:7px 10px;
+font-size:13px;
+box-sizing:border-box}
+.cl-card{background:var(--bg-2);
+border:1px solid var(--border);
+border-radius:var(--radius);
+padding:14px}
+.petri-masthead{display:flex;
+align-items:baseline;
+gap:12px;
+padding:14px 18px;
+border-bottom:1px solid var(--border)}
+.petri-masthead .cl-brand{font-size:18px;
+color:var(--accent)}
+.pm-name{font-size:14px;
+font-weight:600}
+.pm-lineage{margin-left:auto;
+font-size:11px;
+color:var(--text-muted)}
+.settings-hint{font-size:11px;
+color:var(--text-muted);
+line-height:1.6}
+body[data-wrapper] [data-block-id]{padding:18px}
+</style>
+</head>
+<body data-wrapper="v1">
+<div class="petri-masthead"><span class="cl-brand">Colony</span><span class="pm-name">界面设计</span><span class="pm-lineage">源自 Colony 第1代 · Stem 14121d04</span></div>
+<!--COLONY-PETRI {"wrapper":"v1","blockId":"petri:ui-shell","version":2,"codeHash":"8f2e6a3d","parentStemHash":"14121d04","at":"2026-07-21T14:40:00.000Z"}-->
+<script type="colony/petri" data-id="petri:ui-shell">
+/*BLOCK*/{"id":"petri:ui-shell","name":"界面设计","version":2,"after":[],"requires":[],"provides":["ui","apps"],"category":"ui","degrade":"缺席时stem兜底页接管","sdk":["store.get","store.set","ui.state","ui.applySkin"]}/*CODE*/
+(function (ctx) {
+  /* 数据自报: 界面的显性记录 → 次元口袋按归属聚合 */
+  if (ctx.kv) ctx.kv.set('datamap:petri:ui-shell', {
+    owner: 'petri:ui-shell',
+    label: '界面',
+    icon: '🖥️',
+    ns: [
+      { prefix: 'settings:ui.', label: '样式/壁纸/桌面布局', kind: 'config' },
+      { prefix: 'skill:petri:ui-shell:', label: '最佳实践技能', kind: 'seed' }
+    ]
+  }).catch(() => { });
+  /* petri:ui-shell v2 — 界面设计(默认界面 Petri), 全尺寸自适应:
+     壁纸桌面 + 底部任务栏(右端 84px 留给 agent 气泡) + 开始菜单 + 侧栏抽屉 + 指针触摸拖拽 + 文件夹 + 窗口管理器。
+     职责: 布局骨架 + 插槽(顶栏/设置页/侧栏) + apps CRUD 与 store.* 提供者 + runner + 点选编辑器。不含 agent/AI/导入导出(各归其块)。
+     跨块软契约(改结构先看消费者): .app-shell/.app-main/.page+#page-apps 与 .app-sidebar/#sb-list 首项 .sb-item/#sb-slot 被 petri:workflow 消费
+     (画布注入 .page 靠壳的 .page/.active 显隐; 列表注入侧栏; 往 .app-sidebar 追加新建按钮); .app-card[data-id] 与其 .badges 被 workflow/code 装饰。
+     通用底部避让: --shell-bottom-inset 全局变量, 注入 .app-main 的一切 .page 自动让出任务栏(#page-apps 例外: 壁纸铺满, 内容用 padding 避让)。
+     z 阶梯: 任务栏40 < 抽屉44 < 开始菜单46 < runner50(壳窗口 inline 56-84) < 工作流90 < 解读110 < 源码管理120 < 右键菜单125 < agent dock130 < toast300。 */
+  ctx.css("* { box-sizing: border-box; margin: 0; padding: 0; }\nhtml, body { height: 100%; overscroll-behavior: none; }\nbody {\nbackground: var(--bg);" +
+    "\ncolor: var(--text);\nfont-family: var(--sans);\nline-height: 1.6;\n-webkit-font-smoothing: antialiased;\noverflow: hidden;\n}" +
+    "\n::-webkit-scrollbar { width: 10px; height: 10px; }\n::-webkit-scrollbar-track { background: transparent; }" +
+    "\n::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, .08); border-radius: 5px; }\n::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, .18); }" +
+    "\nbutton { font-family: inherit; }\ninput, textarea { font-family: inherit; color: inherit; }" +
+    "\n:root { --shell-bottom-inset: calc(52px + env(safe-area-inset-bottom, 0px)); }" +
+    "\n.app-shell { position: relative; height: 100vh; height: 100dvh; }" +
+    "\n/* 侧栏→抽屉(全尺寸统一): 平时藏左侧, 任务栏 📂 呼出; #sb-slot 常驻 DOM 供工作流注入 */" +
+    "\n.app-sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: min(78vw, 280px); z-index: 44; background: rgba(13,13,13,.92);" +
+    " backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border-right: 1px solid var(--border);" +
+    " display: flex; flex-direction: column; padding-bottom: var(--shell-bottom-inset); transform: translateX(-103%); transition: transform .16s ease; }" +
+    "\n.app-sidebar.open { transform: none; box-shadow: 12px 0 40px rgba(0,0,0,.45); }" +
+    "\n.sb-head { padding: 16px 18px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }" +
+    "\n.sb-title { font-family: var(--serif); font-style: italic; font-size: 14px; color: var(--text); }" +
+    "\n.sb-list { flex: 1; overflow-y: auto; padding: 8px 10px; }" +
+    "\n.sb-item { display: flex; align-items: center; gap: 8px; padding: 10px; margin: 2px 0; border-radius: 8px; cursor: pointer; color: var(--text-muted); font-size: 13px; }" +
+    "\n.sb-item:hover { background: var(--surface); color: var(--text); }" +
+    "\n.sb-item.active { background: rgba(181,255,0,0.08); color: var(--text); border: 1px solid rgba(181,255,0,0.2); padding: 9px; }" +
+    "\n.sb-slot { display: flex; flex-direction: column; }" +
+    "\n/* 主区与页: 注入 .app-main 的任何 .page(含工作流画布)自动让出任务栏 — 通用底部避让 */" +
+    "\n.app-main { position: absolute; inset: 0; }" +
+    "\n.page { position: absolute; inset: 0; bottom: var(--shell-bottom-inset); display: none; flex-direction: column; overflow: hidden; }" +
+    "\n.page.active { display: flex; }" +
+    "\n#page-apps { bottom: 0; padding: 16px 12px calc(var(--shell-bottom-inset) + 14px); overflow: auto;" +
+    " background: linear-gradient(135deg, rgba(8,14,26,.5), rgba(0,0,0,.22)), var(--shell-wallpaper, url(https://picsum.photos/1920/1080?random=2026)) center/cover no-repeat fixed; }" +
+    "\n.apps-grid { position: relative; display: block; min-height: calc(100% - 4px); }" +
+    "\n/* 桌面图标(指针拖拽: 触摸鼠标通吃; touch-action:none 防浏览器把拖动当滚动) */" +
+    "\n.app-card, .desktop-folder { position: absolute; width: 92px; height: 104px; padding: 8px 6px; border: 1px solid transparent; border-radius: 8px;" +
+    " color: #fff; text-shadow: 0 1px 3px rgba(0,0,0,.85); display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer;" +
+    " user-select: none; -webkit-user-select: none; touch-action: none; transition: background .12s, border-color .12s, opacity .12s; }" +
+    "\n.app-card:hover, .desktop-folder:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.25); }" +
+    "\n.app-card.dragging, .desktop-folder.dragging { transition: none; will-change: left, top; pointer-events: none; opacity: .72; z-index: 20; background: rgba(255,255,255,.18); }" +
+    "\n.app-card.cutting, .folder-app.cutting { opacity: .45; filter: saturate(.45); }" +
+    "\n.app-card .icon { width: 48px; height: 48px; font-size: 28px; display: flex; align-items: center; justify-content: center; border-radius: 12px;" +
+    " background: rgba(255,255,255,.16); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.18); }" +
+    "\n.app-card h3 { margin: 0; font-size: 12px; font-weight: 600; line-height: 1.25; text-align: center; max-width: 82px;" +
+    " display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }" +
+    "\n.app-card .desc, .app-card .badges { display: none; }" +
+    "\n.app-card .del-btn { position: absolute; top: 3px; right: 3px; width: 18px; height: 18px; background: var(--danger); color: #fff; border: none;" +
+    " border-radius: 50%; cursor: pointer; opacity: 0; transition: opacity .15s; font-size: 12px; display: flex; align-items: center; justify-content: center; }" +
+    "\n.app-card:hover .del-btn { opacity: .9; }" +
+    "\n.app-card .analyze-chip { left: 2px; bottom: 2px; width: 18px; height: 18px; font-size: 9px; }" +
+    "\n.desktop-folder .icon { width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 30px;" +
+    " background: rgba(255,255,255,.16); backdrop-filter: blur(8px); border: 1px solid rgba(255,255,255,.18); }" +
+    "\n.desktop-folder .name { font-size: 12px; line-height: 1.25; text-align: center; max-width: 82px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }" +
+    "\n.desktop-folder .count { position: absolute; right: 8px; top: 37px; min-width: 18px; height: 18px; border-radius: 999px; background: rgba(0,0,0,.58);" +
+    " color: #fff; font-size: 10px; display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,.25); }" +
+    "\n.desktop-folder.drop-target { background: rgba(181,255,0,.20); border-color: rgba(181,255,0,.75); box-shadow: 0 0 0 2px rgba(181,255,0,.25), 0 0 24px rgba(181,255,0,.18); }" +
+    "\n.win-folder-window.drop-target { border-color: rgba(181,255,0,.75); box-shadow: 0 0 0 2px rgba(181,255,0,.25), 0 18px 60px rgba(0,0,0,.42); }" +
+    "\n.apps-empty { margin: 15vh auto 0; max-width: 340px; text-align: center; color: #fff; text-shadow: 0 1px 4px rgba(0,0,0,.9);" +
+    " background: rgba(0,0,0,.22); border: 1px solid rgba(255,255,255,.18); border-radius: 14px; padding: 22px 26px; backdrop-filter: blur(12px); font-size: 13px; }");
+  ctx.css("/* Runner(z50; 壳窗口 focus 时 inline z 56-84 盖过任务栏40) */" +
+    "\n.runner-overlay {\nposition: fixed;\ninset: 0;\nbackground: var(--bg);\nz-index: 50;\ndisplay: none;\nflex-direction: column;\n}" +
+    "\n.runner-overlay.show { display: flex; }" +
+    "\n.runner-bar {\ndisplay: flex;\nalign-items: center;\njustify-content: space-between;\npadding: 10px 16px;\nbackground: var(--bg-2);\nborder-bottom: 1px solid var(--border);\nflex-shrink: 0;\n}" +
+    "\n.runner-bar .info {\ndisplay: flex;\nalign-items: center;\ngap: 10px;\nfont-size: 13px;\n}" +
+    "\n.runner-bar .dot {\nwidth: 8px; height: 8px;\nbackground: var(--accent);\nborder-radius: 50%;\n}" +
+    "\n.runner-bar button {\nbackground: transparent;\nborder: 1px solid var(--border);\ncolor: var(--text);\npadding: 5px 12px;\nborder-radius: 6px;\nfont-size: 12px;\ncursor: pointer;\nmargin-left: 8px;\n}" +
+    "\n.runner-bar button:hover { background: var(--surface-hover); }\n.runner-body { flex: 1; position: relative; }" +
+    "\n/* 通用 modal / toast(modal z100 在 dock130 之下) */" +
+    "\n.ad-overlay {\nposition: fixed;\ninset: 0;\nbackground: rgba(0,0,0,.7);\nbackdrop-filter: blur(8px);\nz-index: 100;\ndisplay: flex;\nalign-items: center;\njustify-content: center;\npadding: 20px;\n}" +
+    "\n.ad-modal {\nbackground: var(--bg-2);\nborder: 1px solid var(--border);\nborder-radius: var(--radius-lg);\npadding: 28px;\nwidth: 100%;\nmax-width: 480px;\nmax-height: 90vh;\noverflow-y: auto;\n}" +
+    "\n.ad-modal-wide { max-width: 720px; }" +
+    "\n.ad-modal h2 {\nfont-size: 18px;\nfont-weight: 500;\nmargin-bottom: 6px;\nfont-family: var(--serif);\n}" +
+    "\n.ad-modal label {\ndisplay: block;\nmargin-bottom: 12px;\nfont-size: 12px;\ncolor: var(--text-muted);\n}" +
+    "\n.ad-modal label input,\n.ad-modal label textarea {\ndisplay: block;\nwidth: 100%;\nmargin-top: 6px;\nbackground: var(--bg);\nborder: 1px solid var(--border);\ncolor: var(--text);" +
+    "\npadding: 9px 12px;\nborder-radius: 8px;\nfont-size: 13px;\nfont-family: var(--mono);\n}" +
+    "\n.ad-btn-primary {\nbackground: var(--accent);\ncolor: #000;\nborder: none;\npadding: 9px 20px;\nborder-radius: 8px;\nfont-weight: 600;\ncursor: pointer;\n}" +
+    "\n.ad-btn-ghost {\nbackground: transparent;\ncolor: var(--text);\nborder: 1px solid var(--border);\npadding: 9px 20px;\nborder-radius: 8px;\ncursor: pointer;\n}");
+  ctx.css('.ad-modal{scrollbar-width:none}.ad-modal::-webkit-scrollbar{display:none}');
+  ctx.css('/* 底部任务栏(z40, 右端 84px 空位给 agent 气泡: 气泡 z130 浮在其上仍可点) */\n' +
+    '.win-taskbar { position: fixed; left: 0; right: 0; bottom: 0; height: calc(52px + env(safe-area-inset-bottom, 0px)); z-index: 40;' +
+    ' display: flex; align-items: center; gap: 8px; padding: 6px 84px calc(6px + env(safe-area-inset-bottom, 0px)) 10px;' +
+    ' background: rgba(14,18,26,.72); border-top: 1px solid rgba(255,255,255,.14);' +
+    ' backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px); box-shadow: 0 -8px 28px rgba(0,0,0,.24); }\n' +
+    '.win-start-btn, .win-task-btn { height: 38px; border: 1px solid rgba(255,255,255,.16); border-radius: 10px; background: rgba(255,255,255,.1);' +
+    ' color: #fff; cursor: pointer; padding: 0 13px; font-size: 13px; display: flex; align-items: center; gap: 7px; flex-shrink: 0; }\n' +
+    '.win-start-btn:hover, .win-task-btn:hover { background: rgba(255,255,255,.2); }\n' +
+    '.win-start-btn.active { background: var(--accent-soft); border-color: var(--accent); }\n' +
+    '.win-task-spacer { flex: 1; }\n' +
+    '.win-task-windows { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; overflow: hidden; }\n' +
+    '.win-task-win { max-width: 170px; height: 36px; border: 1px solid rgba(255,255,255,.16); border-radius: 9px; background: rgba(255,255,255,.1);' +
+    ' color: #fff; cursor: pointer; padding: 0 10px; font-size: 12px; display: flex; align-items: center; gap: 6px; overflow: hidden; white-space: nowrap; flex-shrink: 0; }\n' +
+    '.win-task-win:hover { background: rgba(255,255,255,.18); }\n' +
+    '.win-task-win.active { background: var(--accent-soft); border-color: rgba(181,255,0,.45); }\n' +
+    '.win-task-win.min { opacity: .62; }\n' +
+    '.win-task-win .txt { overflow: hidden; text-overflow: ellipsis; }\n' +
+    '.win-clock { color: #fff; font-size: 12px; opacity: .9; min-width: 68px; text-align: center; line-height: 1.3; flex-shrink: 0; }\n' +
+    '#topbar-slot { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }\n' +
+    '/* 开始菜单(z46) */\n' +
+    '.win-start-menu { position: fixed; left: 10px; bottom: calc(var(--shell-bottom-inset) + 8px); width: 360px; max-width: calc(100vw - 20px);' +
+    ' max-height: min(620px, calc(100dvh - var(--shell-bottom-inset) - 24px)); z-index: 46; display: none; overflow: hidden;' +
+    ' background: rgba(20,26,38,.9); color: #fff; border: 1px solid rgba(255,255,255,.18); border-radius: 18px;' +
+    ' box-shadow: 0 20px 60px rgba(0,0,0,.45); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); }\n' +
+    '.win-start-menu.show { display: flex; flex-direction: column; animation: win-menu-pop .14s ease-out; }\n' +
+    '@keyframes win-menu-pop { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }\n' +
+    '.win-menu-head { padding: 14px 16px 10px; border-bottom: 1px solid rgba(255,255,255,.1); }\n' +
+    '.win-menu-title { font-size: 16px; font-weight: 650; }\n' +
+    '.win-menu-title .cl-brand { color: var(--accent); margin-right: 6px; }\n' +
+    '.win-menu-sub { font-size: 11px; opacity: .68; margin-top: 2px; }\n' +
+    '.win-menu-section { padding: 12px; overflow-y: auto; }\n' +
+    '.win-menu-label { font-size: 11px; opacity: .65; margin: 2px 4px 8px; }\n' +
+    '.win-petri-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px; border-radius: 10px; cursor: pointer; font-size: 13px; }\n' +
+    '.win-petri-item:hover { background: rgba(255,255,255,.12); }\n' +
+    '.win-petri-main { display: flex; align-items: center; gap: 9px; min-width: 0; }\n' +
+    '.win-petri-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }\n' +
+    '.win-petri-id { font-size: 10px; opacity: .48; }\n' +
+    '.win-petri-flags { display: flex; gap: 4px; flex-shrink: 0; }\n' +
+    '.win-chip { font-size: 10px; padding: 1px 6px; border-radius: 999px; background: rgba(255,255,255,.12); cursor: pointer; }\n' +
+    '.win-chip.err { background: rgba(255,60,60,.22); color: #ffb1b1; }\n' +
+    '.win-chip.dirty { background: rgba(255,195,0,.22); color: #ffe08a; }\n' +
+    '.win-menu-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 0 12px 12px; }\n' +
+    '.win-menu-actions .win-task-btn { justify-content: center; padding: 0 10px; }\n' +
+    '/* 右键/长按菜单(z125, 在 dock130 之下) */\n' +
+    '.win-menu { position: fixed; z-index: 125; min-width: 178px; padding: 6px; border-radius: 10px; background: rgba(28,32,42,.96); color: #fff;' +
+    ' border: 1px solid rgba(255,255,255,.18); box-shadow: 0 12px 38px rgba(0,0,0,.45); backdrop-filter: blur(18px); }\n' +
+    '.win-menu-item { padding: 9px 10px; border-radius: 7px; font-size: 13px; cursor: pointer; white-space: nowrap; }\n' +
+    '.win-menu-item:hover { background: rgba(255,255,255,.14); }\n' +
+    '.win-menu-item.disabled { opacity: .42; cursor: default; }\n' +
+    '.win-menu-item.disabled:hover { background: transparent; }\n' +
+    '.win-menu-sep { height: 1px; background: rgba(255,255,255,.12); margin: 5px 3px; }\n' +
+    '/* 文件夹窗口(默认 z56, focus 时 inline 重排) */\n' +
+    '.win-folder-window { position: fixed; width: min(720px, calc(100vw - 24px)); min-height: 260px;' +
+    ' max-height: calc(100dvh - var(--shell-bottom-inset) - 24px); z-index: 56; display: flex; flex-direction: column; background: rgba(18,22,30,.92);' +
+    ' color: var(--text); border: 1px solid rgba(255,255,255,.16); border-radius: 14px; box-shadow: 0 18px 60px rgba(0,0,0,.42); backdrop-filter: blur(18px); overflow: hidden; }\n' +
+    '.win-folder-titlebar { height: 44px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px 0 14px;' +
+    ' border-bottom: 1px solid rgba(255,255,255,.1); cursor: move; user-select: none; -webkit-user-select: none; touch-action: none; flex-shrink: 0; }\n' +
+    '.win-folder-title { font-size: 14px; font-weight: 650; display: flex; align-items: center; gap: 8px; }\n' +
+    '.win-folder-close { width: 34px; height: 30px; border: 0; border-radius: 8px; background: transparent; color: var(--text); cursor: pointer; font-size: 16px; }\n' +
+    '.win-folder-close:hover { background: rgba(255,80,80,.22); }\n' +
+    '.win-folder-body { padding: 14px; overflow: auto; flex: 1; }\n' +
+    '.win-folder-hint { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }\n' +
+    '.folder-app-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(82px, 1fr)); gap: 12px; }\n' +
+    '.folder-app { position: relative; min-height: 92px; padding: 8px 6px; border-radius: 10px; display: flex; flex-direction: column; align-items: center; gap: 6px;' +
+    ' cursor: pointer; color: var(--text); touch-action: none; user-select: none; -webkit-user-select: none; }\n' +
+    '.folder-app:hover { background: var(--surface); }\n' +
+    '.folder-app.dragging { opacity: .6; }\n' +
+    '.folder-app .fi { width: 42px; height: 42px; border-radius: 11px; display: flex; align-items: center; justify-content: center; font-size: 25px; background: var(--bg); }\n' +
+    '.folder-app .fn { font-size: 12px; text-align: center; line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }\n' +
+    '/* 小屏适配 */\n' +
+    '@media (max-width: 620px) {\n' +
+    ' :root { --shell-bottom-inset: calc(50px + env(safe-area-inset-bottom, 0px)); }\n' +
+    ' #page-apps { padding: 12px 8px calc(var(--shell-bottom-inset) + 12px); }\n' +
+    ' .app-card, .desktop-folder { width: 78px; height: 96px; }\n' +
+    ' .app-card .icon, .desktop-folder .icon { width: 44px; height: 44px; font-size: 25px; }\n' +
+    ' .app-card h3, .desktop-folder .name { max-width: 72px; font-size: 11px; }\n' +
+    ' .win-taskbar { height: calc(50px + env(safe-area-inset-bottom, 0px)); padding: 6px 76px calc(6px + env(safe-area-inset-bottom, 0px)) 6px; gap: 6px; }\n' +
+    ' .win-start-btn, .win-task-btn { height: 36px; padding: 0 10px; font-size: 12px; }\n' +
+    ' .win-start-btn .txt, .win-task-btn .txt { display: none; }\n' +
+    ' .win-clock { display: none; }\n' +
+    ' .win-start-menu { left: 6px; right: 6px; width: auto; border-radius: 16px; }\n' +
+    '}');
+
+  const $ = id => ctx.root.querySelector('#' + id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  try { const mv = document.querySelector('meta[name="viewport"]'); if (mv && mv.content.indexOf('viewport-fit') < 0) mv.content += ',viewport-fit=cover'; } catch (e) { } // iOS 安全区: env() 需要 cover 才非零
+
+  ctx.root.innerHTML = [
+    '<div class="app-shell">',
+    ' <div class="app-sidebar" id="app-sidebar"><div class="sb-head"><span class="sb-title">Workspaces</span></div><div class="sb-list" id="sb-list"></div></div>',
+    ' <div class="app-main"><div class="page active" id="page-apps"><div class="apps-grid" id="apps-grid"></div></div></div>',
+    '</div>',
+    '<div class="runner-overlay" id="runner-overlay"><div class="runner-bar"><div class="info"><div class="dot"></div><span id="runner-title"></span></div>' +
+    '<div><button id="runner-trust" title="默认隔离运行(读不到本机数据)。开启=完全信任: 允许此应用访问 Colony 全部数据(含 API 密钥), 仅对你读过源码/信任的应用开"></button>' +
+    '<button id="runner-edit" title="编辑这个应用的界面: 点一下选中, 再点正常使用; 文字选中后可直接改。桌面右键的编辑=全局">✎ 编辑</button>' +
+    '<button id="runner-close">✕ 关闭</button></div></div><div class="runner-body" id="runner-body"></div></div>',
+    '<div class="win-start-menu" id="win-start-menu"><div class="win-menu-head"><div class="win-menu-title"><span class="cl-brand">Colony</span>开始</div>' +
+    '<div class="win-menu-sub">系统 Petri 与桌面设置</div></div><div class="win-menu-section"><div class="win-menu-label">所有 Petri</div><div id="win-petri-list"></div></div>' +
+    '<div class="win-menu-actions"><button class="win-task-btn" id="win-settings">⚙ <span class="txt">设置</span></button><button class="win-task-btn" id="win-src">📦 <span class="txt">源码</span></button>' +
+    '<button class="win-task-btn" id="win-custom-wallpaper">🔗 <span class="txt">自定义壁纸</span></button><button class="win-task-btn" id="win-refresh">↻ <span class="txt">刷新</span></button></div></div>',
+    '<div class="win-taskbar"><button class="win-start-btn" id="win-start-btn">⊞ <b class="txt">开始</b></button>' +
+    '<button class="win-task-btn" id="win-drawer" title="工作区(Workspaces): 工作流列表等">📂</button>' +
+    '<button class="win-task-btn" id="win-refresh-wallpaper" title="换一张桌面壁纸">🖼</button><span id="topbar-slot"></span>' +
+    '<div class="win-task-windows" id="win-task-windows"></div><div class="win-task-spacer"></div><div class="win-clock" id="win-clock"></div></div>',
+  ].join('');
+
+  /* ── 通用 modal / toast ── */
+  function mkModal(innerHTML, wide) {
+    const o = document.createElement('div');
+    o.className = 'ad-overlay';
+    o.innerHTML = '<div class="ad-modal'
+      + (wide ? ' ad-modal-wide' : '')
+      + '">'
+      + innerHTML
+      + '<div style="margin-top:16px;text-align:right"><button class="ad-btn-ghost" id="__x-close">关闭</button></div></div>';
+    o.querySelector('#__x-close').onclick = () => o.remove();
+    o.onclick = e => { if (e.target === o) o.remove(); };
+    ctx.root.appendChild(o);
+    return o;
+  }
+  function toast(msg) {
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:var(--bg-2);border:1px solid var(--border);padding:10px 18px;border-radius:8px;z-index:300;font-size:13px;';
+    ctx.root.appendChild(t);
+    setTimeout(() => t.remove(), 2500);
+  }
+
+  /* ── 窗口管理器: runner/文件夹窗登记进任务栏, 可最小化/恢复/置顶(inline z 限 56-84, 顶不过工作流90/agent dock130) ── */
+  const shellWins = new Map(); let shellZ = 56;
+  function bumpWinZ(el) {
+    if (!el) return;
+    if (shellZ > 84) { shellZ = 56; shellWins.forEach(w => { if (w.el && !w.min) w.el.style.zIndex = String(shellZ++); }); }
+    el.style.zIndex = String(++shellZ);
+  }
+  function renderShellWins() {
+    const box = $('win-task-windows'); if (!box) return;
+    box.innerHTML = Array.from(shellWins.values()).map(w => '<button class="win-task-win' + (w.active ? ' active' : '') + (w.min ? ' min' : '')
+      + '" data-wid="' + esc(w.id) + '" title="' + esc(w.title || '窗口') + '">' + esc(w.icon || '□') + '<span class="txt">' + esc(w.title || '窗口') + '</span></button>').join('');
+    box.querySelectorAll('[data-wid]').forEach(b => b.onclick = () => toggleShellWin(b.dataset.wid));
+  }
+  function registerShellWin(id, title, el, opt) {
+    opt = opt || {};
+    const old = shellWins.get(id) || {};
+    shellWins.set(id, Object.assign(old, { id, title, el, icon: opt.icon || old.icon || '□', active: true, min: false }));
+    focusShellWin(id);
+  }
+  function unregisterShellWin(id) { shellWins.delete(id); renderShellWins(); }
+  function focusShellWin(id) {
+    shellWins.forEach(w => w.active = false);
+    const w = shellWins.get(id);
+    if (w && w.el) { w.active = true; w.min = false; w.el.style.display = ''; bumpWinZ(w.el); }
+    renderShellWins();
+  }
+  function toggleShellWin(id) {
+    const w = shellWins.get(id); if (!w || !w.el) return;
+    if (w.min || w.el.style.display === 'none') focusShellWin(id);
+    else { w.min = true; w.active = false; w.el.style.display = 'none'; renderShellWins(); }
+  }
+  /* ── apps CRUD + store.*(全 Colony 唯一实现): 桌面是 miniapp 的家, 注册表与壳生死同频, 壳为提供者。
+     数据住全局 kv 的 miniapp:/appstore: 键(schema 即契约); 壳被禁用 → apps/store 消失(诚实降级;
+     agent 有 kv 兜底 appsOr, porter 导入判空降级)。独立穿衣时 provide/sdk 是空壳 → 原正当降级不变。 ── */
+  const ICONS = ['🎨', '🛠', '📊', '📝', '🔧', '⚡', '🎯', '💡', '🚀', '🧩', '💎', '🌟'], COLORS = ['#B5FF00', '#FF9500', '#00B8FF', '#FF4488', '#9D4EDD', '#FFD60A'];
+  const AppsAPI = {
+    async list() { return (await ctx.kv.list('miniapp:')).map(e => e.value).filter(m => m && !m.deleted).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0)); },
+    async get(id) { return ctx.kv.get('miniapp:' + id); },
+    async create(rec) {
+      rec = rec || {}; const id = rec.id || 'm' + Date.now().toString(36);
+      if (!rec.name) { const t = /<title[^>]*>\s*([^<\n]{1,60})/i.exec(rec.code || ''); if (t) rec.name = t[1].trim(); } // 名字缺省时从 <title> 兜底, 免得桌面一排"未命名"
+      let h = 0; const s = (rec.name || '') + (rec.desc || ''); for (let i = 0; i < s.length; i++) h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+      const full = Object.assign({ id, name: '未命名', desc: '', code: '', icon: ICONS[Math.abs(h) % ICONS.length], color: COLORS[Math.abs(h) % COLORS.length], origin: 'user', createdAt: Date.now() }, rec, { id, updatedAt: Date.now() });
+      await ctx.kv.set('miniapp:' + id, full); ctx.emit('apps:changed'); return full;
+    },
+    async update(id, patch) { const r = await ctx.kv.get('miniapp:' + id); if (!r) throw new Error('无此应用: ' + id); Object.assign(r, patch || {}, { updatedAt: Date.now() }); await ctx.kv.set('miniapp:' + id, r); ctx.emit('apps:changed'); return r; },
+    async remove(id) { await ctx.kv.del('miniapp:' + id); ctx.emit('apps:changed'); },
+  };
+  ctx.provide('apps', AppsAPI);
+  const apps = () => ctx.service('apps'); // 消费面统一走服务(独立穿衣 provide 为空 → null → 正当降级)
+  {
+    // 协议契约显式化: 形状错误必须如实报错 — 静默假成功会把数据存进 "undefined" 键并毒化调用方的自我验证
+    const appOf = meta => (meta && meta.context && meta.context.miniappId) || '(anon)';
+    const needKey = (cap, sig, a) => new Error(cap + ' 需要单对象参数 ' + sig + ', 收到 ' + String(JSON.stringify(a)).slice(0, 60) + '; 正确用法: colony.' + cap + '(' + sig + ')');
+    if (ctx.sdk && ctx.sdk.handle) {
+      ctx.sdk.handle('store.get', async (a, meta) => { if (!a || typeof a.key !== 'string') throw needKey('store.get', '{key}', a); return ctx.kv.get('appstore:' + appOf(meta) + ':' + a.key); });
+      ctx.sdk.handle('store.set', async (a, meta) => { if (!a || typeof a.key !== 'string') throw needKey('store.set', '{key, value}', a); await ctx.kv.set('appstore:' + appOf(meta) + ':' + a.key, a.value); return { ok: true }; });
+    }
+  }
+  /* miniapp 书写约定 skill(版本式: 带 v 才重播; 无 v 保持种一次用户可删改): 约定的主人是桌面, 由壳播种(知识随块) */
+  if (ctx.kv) ctx.kv.get('skill:petri:ui-shell:约定-写miniapp').then(v => { const val = {
+    desc: '创建/修改 miniapp(桌面应用)前必读',
+    guide: 'miniapp = 完整可运行 HTML(含样式), 住 miniapp:<id> 记录的 code 字段(write {miniapp,record} / {miniapp:<id>,patch})。① HTML 必须含 <head> —— SDK 注入锚, 没有它 window.colony 不存在; ② 持久化用 colony.store.get({key})/store.set({key,value})(单对象参数, 按 miniappId 隔离; 默认沙箱读不到 localStorage); ③ name 缺省从 <title> 兜底, 写好 <title>; ④ 默认隔离运行(不透明源), 要读宿主数据需用户在 runner 开「完全访问」(trust, 存应用记录, 重挂生效); ⑤ 打开 run miniapp:<id>, 改完重开生效。'
+  }; if (!v || (val.v !== undefined && v.v !== val.v)) ctx.kv.set('skill:petri:ui-shell:约定-写miniapp', val); }).catch(() => { });
+
+  /* ── Runner(iframe): 应用运行窗, 登记进窗口管理器 ── */
+  let runner = null, runnerAppId = null;
+  async function openRunner(id) {
+    const m = await apps().get(id);
+    if (!m) return toast('应用不存在');
+    if (uied && uied.scope && uied.scope !== id) uiedExit(false); // 换应用=旧作用域编辑退场
+    closeRunner();
+    runnerAppId = id;
+    $('runner-title').textContent = m.icon + ' ' + m.name;
+    $('runner-overlay').classList.add('show');
+    const tb = $('runner-trust');
+    if (tb) tb.textContent = m.trust ? '🔓 完全访问' : '🔒 隔离运行'; // trust 存应用记录; 默认隔离(不透明源, 读不到本机)
+    registerShellWin('runner:' + id, (m.icon || '📦') + ' ' + (m.name || '应用'), $('runner-overlay'), { icon: m.icon || '📦' });
+    runner = ctx.runtime.mount({ code: m.code, host: $('runner-body'), mode: 'app', trusted: !!m.trust, context: { miniappId: id }, iframeAttrs: { allow: 'microphone; camera; autoplay; clipboard-read; clipboard-write' } });   // 录音/自动播放权限走 mount 参数(srcdoc 赋值前落属性, 消加载竞态)
+  }
+  function closeRunner() {
+    if (runnerAppId) unregisterShellWin('runner:' + runnerAppId);
+    if (runner) { runner.destroy(); runner = null; }
+    runnerAppId = null;
+    $('runner-overlay').classList.remove('show');
+  }
+  $('runner-close').onclick = () => { const ed = uied && uied.scope; closeRunner(); if (ed) uiedExit(false); }; // 应用作用域编辑随 ✕ 退出(未保存回滚); 钩在按钮而非 closeRunner(解禁重开不误杀编辑器); 先关窗后退编辑(runnerAppId 已清, 退场的"恢复隔离重开"不会把刚关的应用又拉起来)
+  $('runner-edit').onclick = async () => { if (!runnerAppId) return; await openUiEditor(runnerAppId); const fe = $('runner-body').querySelector('iframe'); if (fe) uiedTryFrame(fe); }; // runner ✎: 同一编辑器, 只限本应用(其余体验全同), 隔离帧顺手临时解禁
+  $('runner-trust').onclick = async () => { // 完全访问开关: 默认关, 点开=授予同源(可读stem kv/密钥); 改记录后重挂生效
+    const id = runnerAppId; if (!id) return;
+    const m = await apps().get(id); if (!m) return;
+    const next = !m.trust;
+    if (next && !confirm('完全信任「' + m.name + '」? 开启后它能访问 Colony 的全部数据, 包括你保存的 API 密钥。请确认你信任这个应用(可先看它源码)。')) return;
+    await apps().update(id, { trust: next });
+    toast(next ? '已授予完全访问, 重载中' : '已恢复隔离运行');
+    openRunner(id);
+  };
+
+  /* ── 桌面: 绝对定位图标 + 指针拖拽 + 文件夹(位置/文件夹存 settings:ui.desktop.*, 壳私有数据) ── */
+  let deskDrag = null, deskClipboard = null, suppressClickUntil = 0;
+  const posKey = 'settings:ui.desktop.positions', folderKey = 'settings:ui.desktop.folders';
+  async function saveAppMeta(id, patch) { return apps().update(id, patch); }
+  async function getPositions() { return (await ctx.kv.get(posKey)) || {}; }
+  function desktopCell() { return innerWidth <= 620 ? { w: 86, h: 104 } : { w: 104, h: 114 }; }
+  function clampPos(x, y) { const g = $('apps-grid'); const w = (g && g.clientWidth) || innerWidth, h = (g && g.clientHeight) || innerHeight; return { x: Math.max(0, Math.min(Math.round(x), Math.max(0, w - 96))), y: Math.max(0, Math.min(Math.round(y), Math.max(0, h - 112))) }; }
+  function snapPos(x, y) { const c = desktopCell(); return clampPos(Math.round((x || 0) / c.w) * c.w, Math.round((y || 0) / c.h) * c.h); }
+  function posSlot(pos) { const c = desktopCell(); const p = snapPos(pos && pos.x || 0, pos && pos.y || 0); return Math.round(p.x / c.w) + ':' + Math.round(p.y / c.h); }
+  function nextGridPos(i) { const c = desktopCell(); const cols = Math.max(1, Math.floor((($('apps-grid') && $('apps-grid').clientWidth) || innerWidth) / c.w)); return clampPos(Math.floor(i / cols) * c.w, (i % cols) * c.h); }
+  function findFreePos(prefer, used) {
+    let p = snapPos(prefer && prefer.x || 0, prefer && prefer.y || 0); let k = posSlot(p);
+    if (!used.has(k)) { used.add(k); return p; }
+    for (let i = 0; i < 400; i++) { p = nextGridPos(i); k = posSlot(p); if (!used.has(k)) { used.add(k); return p; } }
+    used.add(k); return p;
+  }
+  async function setPos(id, x, y) { const p = await getPositions(); const used = new Set(Object.keys(p).filter(k => k !== id).map(k => posSlot(p[k]))); p[id] = findFreePos({ x, y }, used); await ctx.kv.set(posKey, p); }
+  async function arrangeDesktop() {
+    const all = await apps().list(); const folders = await getFolders(); const inFolder = new Set(folders.flatMap(f => f.items || []));
+    const p = {}; let i = 0; const put = id => { p[id] = nextGridPos(i++); };
+    folders.forEach(f => put('folder:' + f.id)); all.filter(a => !inFolder.has(a.id)).forEach(a => put('app:' + a.id));
+    await ctx.kv.set(posKey, p); renderApps(); toast('已自动排列桌面图标');
+  }
+  function closeWinMenus() { ctx.root.querySelectorAll('.win-menu').forEach(x => x.remove()); }
+  function showMenu(x, y, items) {
+    closeWinMenus();
+    const m = document.createElement('div'); m.className = 'win-menu';
+    m.style.left = Math.min(x, innerWidth - 190) + 'px'; m.style.top = Math.min(y, innerHeight - 230) + 'px';
+    const list = items.filter(Boolean);
+    m.innerHTML = list.map(it => it === '-' ? '<div class="win-menu-sep"></div>' : '<div class="win-menu-item' + (it.disabled ? ' disabled' : '') + '" data-k="' + it.k + '">' + it.t + '</div>').join('');
+    ctx.root.appendChild(m);
+    m.querySelectorAll('[data-k]').forEach(el => el.onclick = async () => { const it = list.find(i => i.k === el.dataset.k); if (it && it.disabled) return; closeWinMenus(); if (it && it.fn) await it.fn(); });
+  }
+  ctx.listen(document, 'click', closeWinMenus);
+  async function getFolders() { return (await ctx.kv.get(folderKey)) || []; }
+  async function putFolders(fs) { await ctx.kv.set(folderKey, fs); }
+  async function removeAppFromFolders(appId) {
+    const fs = await getFolders(); let changed = false;
+    fs.forEach(f => { const n = (f.items || []).filter(id => id !== appId); if (n.length !== (f.items || []).length) { f.items = n; changed = true; } });
+    if (changed) await putFolders(fs);
+  }
+  const folderWindows = new Map();
+  async function refreshFolderWindows() { for (const [, w] of folderWindows.entries()) if (w && w.render) await w.render(); }
+  async function addAppToFolder(appId, folderId) {
+    const fs = await getFolders(); fs.forEach(f => f.items = (f.items || []).filter(id => id !== appId));
+    const f = fs.find(x => x.id === folderId);
+    if (f) { f.items = f.items || []; if (!f.items.includes(appId)) f.items.push(appId); await putFolders(fs); await refreshFolderWindows(); toast('已移入「' + (f.name || '文件夹') + '」'); }
+  }
+  async function cloneApp(m, targetFolderId, at) { // 适配基线 AppsAPI: create 生成 id 并自播 apps:changed
+    const created = await apps().create(Object.assign({}, m, { id: undefined, name: (m.name || '应用') + ' - 副本' }));
+    if (targetFolderId) await addAppToFolder(created.id, targetFolderId); else if (at) await setPos('app:' + created.id, at.x, at.y);
+    return created.id;
+  }
+  async function pasteTo(targetFolderId, at) {
+    if (!deskClipboard) return toast('剪贴板为空');
+    const m = deskClipboard.app;
+    if (deskClipboard.type === 'copy') { await cloneApp(m, targetFolderId, at); toast(targetFolderId ? '已粘贴到文件夹' : '已粘贴到桌面'); }
+    else {
+      if (targetFolderId) await addAppToFolder(m.id, targetFolderId);
+      else { await removeAppFromFolders(m.id); if (at) await setPos('app:' + m.id, at.x, at.y); toast('已移动到桌面'); }
+      deskClipboard = null; ctx.emit('apps:changed');
+    }
+    renderApps();
+  }
+  function appCardHTML(m) { // .badges 常驻(workflow 贴 node 徽章的挂点); analyze-chip 由 code 块自贴
+    return '<div class="icon" style="background:' + esc(m.color || '#1a1a1a') + '33">' + esc(m.icon || '📦') + '</div><h3>' + esc(m.name) + '</h3>'
+      + '<div class="badges">' + (m.origin === 'agent' ? '<span class="badge-mini agent">agent</span>' : '') + '</div><button class="del-btn" title="删除">×</button>';
+  }
+  function markDropTarget(t) { ctx.root.querySelectorAll('.desktop-folder.drop-target,.win-folder-window.drop-target').forEach(x => { if (x !== t) x.classList.remove('drop-target'); }); if (t) t.classList.add('drop-target'); }
+  function folderTargetAt(x, y) {
+    const els = document.elementsFromPoint(x, y);
+    const icon = els.find(n => n.classList && n.classList.contains('desktop-folder')); if (icon) return { el: icon, id: icon.dataset.id };
+    const win = els.find(n => n.classList && n.classList.contains('win-folder-window')); if (win) return { el: win, id: win.dataset.id };
+    return null;
+  }
+  function bindDesktopDrag(el, id) { // 指针事件拖拽: setPointerCapture 后触摸/鼠标同路; touch-action:none 已在 CSS
+    el.onpointerdown = e => { if (e.button !== 0 || e.target.classList.contains('del-btn') || e.target.classList.contains('analyze-chip')) return; deskDrag = { el, id, sx: e.clientX, sy: e.clientY, ox: parseFloat(el.style.left) || 0, oy: parseFloat(el.style.top) || 0, moved: false }; el.setPointerCapture(e.pointerId); };
+    el.onpointermove = e => {
+      if (!deskDrag || deskDrag.el !== el) return;
+      const dx = e.clientX - deskDrag.sx, dy = e.clientY - deskDrag.sy;
+      if (Math.abs(dx) + Math.abs(dy) > 4) deskDrag.moved = true;
+      el.classList.add('dragging');
+      el.style.left = Math.max(0, deskDrag.ox + dx) + 'px'; el.style.top = Math.max(0, deskDrag.oy + dy) + 'px';
+      const under = folderTargetAt(e.clientX, e.clientY);
+      markDropTarget(deskDrag.id.startsWith('app:') && under ? under.el : null);
+    };
+    el.onpointerup = async e => {
+      if (!deskDrag || deskDrag.el !== el) return;
+      const d = deskDrag; deskDrag = null; markDropTarget(null); el.classList.remove('dragging');
+      if (d.moved) {
+        suppressClickUntil = Date.now() + 350;
+        const under = folderTargetAt(e.clientX, e.clientY);
+        if (under && d.id.startsWith('app:')) await addAppToFolder(d.id.slice(4), under.id);
+        else await setPos(id, parseFloat(el.style.left) || 0, parseFloat(el.style.top) || 0);
+        renderApps();
+        e.preventDefault(); e.stopPropagation();
+      }
+    };
+    el.onpointercancel = () => { if (deskDrag && deskDrag.el === el) { deskDrag = null; markDropTarget(null); el.classList.remove('dragging'); } }; // 触摸中断兜底: dragging 带 pointer-events:none, 残留=图标假死
+  }
+  function appMenu(m, folderId) { return [
+    { k: 'open', t: '打开', fn: () => openRunner(m.id) },
+    { k: 'ren', t: '重命名', fn: async () => { const name = prompt('新名称', m.name); if (name) { await saveAppMeta(m.id, { name }); renderApps(); } } },
+    { k: 'src', t: '看源码', fn: () => codeOpen('miniapp:' + m.id) }, '-',
+    { k: 'copy', t: '复制', fn: () => { deskClipboard = { type: 'copy', app: m }; toast('已复制'); } },
+    { k: 'cut', t: '剪切', fn: () => { deskClipboard = { type: 'cut', app: m }; renderApps(); toast('已剪切'); } },
+    folderId ? { k: 'out', t: '移到桌面', fn: async () => { await removeAppFromFolders(m.id); ctx.emit('apps:changed'); renderApps(); } } : null,
+    { k: 'del', t: '删除', fn: async () => { if (confirm('删除「' + m.name + '」?')) await apps().remove(m.id); } }
+  ].filter(Boolean); }
+  async function openFolder(f) {
+    ctx.root.querySelectorAll('.win-folder-window[data-id="' + f.id + '"]').forEach(x => x.remove());
+    unregisterShellWin('folder:' + f.id); folderWindows.delete(f.id);
+    const win = document.createElement('div'); win.className = 'win-folder-window'; win.dataset.id = f.id;
+    win.innerHTML = '<div class="win-folder-titlebar"><div class="win-folder-title">📁 <span>' + esc(f.name || '文件夹') + '</span></div><button class="win-folder-close" title="关闭">×</button></div>'
+      + '<div class="win-folder-body"><div class="win-folder-hint">把里面的应用拖到窗口外即可回到桌面；右键空白处可粘贴到此文件夹。</div>'
+      + '<div class="folder-app-grid" id="folder-grid-' + esc(f.id) + '"></div></div>';
+    ctx.root.appendChild(win);
+    const W = Math.min(720, innerWidth - 24); win.style.left = Math.max(8, (innerWidth - W) / 2) + 'px'; win.style.top = Math.max(8, innerHeight * 0.12) + 'px'; // JS 居中(不用 transform, 拖动直接写 left/top)
+    const bar = win.querySelector('.win-folder-titlebar');
+    const grid = win.querySelector('.folder-app-grid');
+    const closeBtn = win.querySelector('.win-folder-close');
+    closeBtn.onpointerdown = e => { e.stopPropagation(); };
+    closeBtn.onclick = e => { e.stopPropagation(); folderWindows.delete(f.id); unregisterShellWin('folder:' + f.id); win.remove(); };
+    win.onpointerdown = () => focusShellWin('folder:' + f.id);
+    let wd = null;
+    bar.onpointerdown = e => { wd = { sx: e.clientX, sy: e.clientY, ox: win.offsetLeft, oy: win.offsetTop }; bar.setPointerCapture(e.pointerId); };
+    bar.onpointermove = e => { if (!wd) return; win.style.left = Math.max(4, Math.min(innerWidth - 120, wd.ox + e.clientX - wd.sx)) + 'px'; win.style.top = Math.max(4, Math.min(innerHeight - 80, wd.oy + e.clientY - wd.sy)) + 'px'; };
+    bar.onpointerup = () => { wd = null; };
+    const render = async () => {
+      const fs = await getFolders(); const cur = fs.find(x => x.id === f.id) || { items: [] };
+      const ids = cur.items || []; const fresh = await apps().list(); const map = new Map(fresh.map(a => [a.id, a]));
+      grid.innerHTML = ids.length ? ids.map(id => {
+        const m = map.get(id); if (!m) return '';
+        const cut = deskClipboard && deskClipboard.type === 'cut' && deskClipboard.app && deskClipboard.app.id === id ? ' cutting' : '';
+        return '<div class="folder-app' + cut + '" data-id="' + esc(id) + '"><div class="fi">' + esc(m.icon || '📦') + '</div><div class="fn">' + esc(m.name) + '</div></div>';
+      }).join('') : '<p class="settings-hint">这个文件夹是空的。</p>';
+      grid.querySelectorAll('.folder-app').forEach(el => {
+        const m = map.get(el.dataset.id); let fd = null;
+        el.onpointerdown = e => { if (e.button !== 0) return; fd = { sx: e.clientX, sy: e.clientY, moved: false }; el.setPointerCapture(e.pointerId); };
+        el.onpointermove = e => { if (!fd) return; if (Math.abs(e.clientX - fd.sx) + Math.abs(e.clientY - fd.sy) > 8) { fd.moved = true; el.classList.add('dragging'); } };
+        el.onpointerup = async e => {
+          if (!fd) return; const d = fd; fd = null; el.classList.remove('dragging');
+          if (d.moved) {
+            const inside = win.contains(document.elementFromPoint(e.clientX, e.clientY));
+            if (!inside) { const r = $('page-apps').getBoundingClientRect(); await removeAppFromFolders(m.id); await setPos('app:' + m.id, e.clientX - r.left, e.clientY - r.top); ctx.emit('apps:changed'); await render(); renderApps(); toast('已移到桌面'); }
+          }
+        };
+        el.ondblclick = () => openRunner(m.id);
+        el.onclick = () => { if (Date.now() < suppressClickUntil) return; };
+        el.oncontextmenu = e => { e.preventDefault(); showMenu(e.clientX, e.clientY, appMenu(m, f.id)); };
+      });
+    };
+    folderWindows.set(f.id, { win, render });
+    registerShellWin('folder:' + f.id, f.name || '文件夹', win, { icon: '📁' });
+    grid.oncontextmenu = e => { if (e.target.closest('.folder-app')) return; e.preventDefault(); showMenu(e.clientX, e.clientY, [{ k: 'paste', t: '粘贴到此文件夹', disabled: !deskClipboard, fn: async () => { await pasteTo(f.id); await render(); } }, { k: 'refresh', t: '刷新', fn: render }]); };
+    render();
+  }
+  /* ── 应用网格: 绝对定位桌面(位置持久化, 冲突自动找空位) ── */
+  async function renderApps() {
+    if (!apps()) return; // 独立穿衣环境无 Stem 服务, 正当降级
+    const grid = $('apps-grid');
+    const all = await apps().list(); const pos = await getPositions(); const folders = await getFolders();
+    const inFolder = new Set(folders.flatMap(f => f.items || []));
+    grid.innerHTML = '';
+    if (!all.length && !folders.length) {
+      grid.innerHTML = '<div class="apps-empty">还没有应用。对右下角 agent 气泡说"做一个 xxx"，或从开始菜单打开「次元口袋」导入。右键/长按桌面可新建文件夹。</div>';
+      return;
+    }
+    const used = new Set(); let changedPos = false;
+    const next = id => {
+      let p = pos[id] ? snapPos(pos[id].x, pos[id].y) : null;
+      if (!p || used.has(posSlot(p))) { p = findFreePos(p || nextGridPos(0), used); pos[id] = p; changedPos = true; }
+      else used.add(posSlot(p));
+      return p;
+    };
+    for (const f of folders) {
+      const p = next('folder:' + f.id);
+      const el = document.createElement('div'); el.className = 'desktop-folder'; el.dataset.id = f.id;
+      el.style.left = p.x + 'px'; el.style.top = p.y + 'px';
+      const count = (f.items || []).length;
+      el.innerHTML = '<div class="icon">📁</div>' + (count ? '<div class="count">' + count + '</div>' : '') + '<div class="name">' + esc(f.name || '新建文件夹') + '</div>';
+      bindDesktopDrag(el, 'folder:' + f.id);
+      el.onclick = () => { if (Date.now() < suppressClickUntil) return; openFolder(f); };
+      el.oncontextmenu = e => { e.preventDefault(); showMenu(e.clientX, e.clientY, [
+        { k: 'open', t: '打开', fn: () => openFolder(f) },
+        { k: 'paste', t: '粘贴到此文件夹', disabled: !deskClipboard, fn: () => pasteTo(f.id) }, '-',
+        { k: 'ren', t: '重命名', fn: async () => { const name = prompt('文件夹名称', f.name || '新建文件夹'); if (!name) return; const fs = await getFolders(); const it = fs.find(x => x.id === f.id); if (it) it.name = name; await putFolders(fs); renderApps(); } },
+        { k: 'del', t: '删除文件夹', fn: async () => { if ((f.items || []).length && !confirm('文件夹里有应用，删除后应用会回到桌面，继续?')) return; const fs = (await getFolders()).filter(x => x.id !== f.id); await putFolders(fs); renderApps(); } }
+      ]); };
+      grid.appendChild(el);
+    }
+    for (const m of all.filter(a => !inFolder.has(a.id))) {
+      const p = next('app:' + m.id);
+      const card = document.createElement('div');
+      card.className = 'app-card' + (deskClipboard && deskClipboard.type === 'cut' && deskClipboard.app && deskClipboard.app.id === m.id ? ' cutting' : '');
+      card.dataset.id = m.id; // 中性管道: 卡片可被任何块按 id 装饰(node 徽章/解读芯片)
+      card.style.left = p.x + 'px'; card.style.top = p.y + 'px';
+      card.innerHTML = appCardHTML(m);
+      bindDesktopDrag(card, 'app:' + m.id);
+      card.onclick = async e => {
+        if (Date.now() < suppressClickUntil || deskDrag) return;
+        if (e.target.classList.contains('del-btn')) { if (confirm('删除「' + m.name + '」?')) await apps().remove(m.id); }
+        else if (!e.target.classList.contains('analyze-chip')) openRunner(m.id); // 芯片点击归 code 块自己的 onclick
+      };
+      card.oncontextmenu = e => { e.preventDefault(); showMenu(e.clientX, e.clientY, appMenu(m)); };
+      grid.appendChild(card);
+    }
+    if (changedPos) ctx.kv.set(posKey, pos).catch(() => { });
+  }
+
+  /* ── 开始菜单 Petri 列表: 错误/已改徽章; 已改徽章点击=恢复出厂 ── */
+  function renderTiles() {
+    const startList = $('win-petri-list'); if (!startList) return;
+    startList.innerHTML = '';
+    for (const b of ctx.stem.listBlocks()) {
+      const item = document.createElement('div'); item.className = 'win-petri-item';
+      item.innerHTML = '<div class="win-petri-main"><span>🧩</span><div><div class="win-petri-name">' + esc(b.name) + '</div><div class="win-petri-id">' + esc(b.id) + '</div></div></div>'
+        + '<div class="win-petri-flags">' + (b.error ? '<span class="win-chip err" title="' + esc(b.error) + '">错误</span>' : '')
+        + (b.dirty ? '<span class="win-chip dirty" data-reset="1" title="已改过 · 点击恢复出厂版">已改 ↺</span>' : '') + '</div>';
+      item.onclick = async e => {
+        if (e.target.dataset && e.target.dataset.reset) {
+          e.stopPropagation();
+          if (confirm('把「' + b.name + '」恢复到出厂版? 你对它的修改会丢失。')) { await ctx.stem.restoreFactory(b.id); toast('已恢复出厂版'); renderTiles(); }
+          return;
+        }
+        closeStartMenu(); openBlockPage(b.id);
+      };
+      startList.appendChild(item);
+    }
+  }
+  /* 源码管理器迁出为 petri:code(代码解读); code 在岗→调它, 不在岗→复用 Stem PANEL 浮层(不另写 UI) */
+  const codeOpen = id => {
+    const c = ctx.service('code');
+    c ? c.open(id) : (ctx.stem.openPanel ? ctx.stem.openPanel() : toast('「代码解读」块不在岗'));
+  };
+
+  /* ── 块页: 点开始菜单 Petri 条目 → 打开该块自己的功能界面 ── */
+  const blockPages = {}; // blockId → open()
+  function openBlockPage(blockId) {
+    if (blockPages[blockId]) {
+      try { blockPages[blockId](); return; } catch (e) { }
+    }
+    const info = ctx.stem.listBlocks().find(x => x.id === blockId) || { name: blockId };
+    const secs = settingsSections.filter(s => s.blockId === blockId);
+    if (!secs.length) return codeOpen(blockId); // 没有功能页的块兜底到源码
+    const o = mkModal('<h2>' + esc(info.name) + ' <span style="font-size:11px;color:var(--text-muted)">' + esc(blockId) + ' · v' + info.version + (info.dirty ? ' · 已修改' : '') + '</span></h2>'
+      + '<div id="bp-body"></div>'
+      + '<div style="display:flex;gap:8px;margin-top:14px"><button class="ad-btn-ghost" id="bp-wrap" title="穿上运行外壳导出, 可独立打开使用; 同时是系统块凭证, 传回任何 Colony 上传即融入">⤓ 导出独立 Petri</button><button class="ad-btn-ghost" id="bp-src">📦 源码管理器</button></div>', true);
+    const body = o.querySelector('#bp-body');
+    for (const s of secs.sort((a, b) => (a.order || 9) - (b.order || 9))) renderSection(s, body, o, false);
+    o.querySelector('#bp-wrap').onclick = () => {
+      ctx.stem.wrapBlock(blockId);
+      toast('已导出独立 Petri(含凭证, 可独立运行/可回流)');
+    };
+    o.querySelector('#bp-src').onclick = () => {
+      o.remove();
+      codeOpen(blockId);
+    };
+  }
+
+  /* ── 设置 modal: 壳出骨架, 各块经插槽注册自己的区 ── */
+  const settingsSections = [];
+  function renderSection(s, parent, o, withTitle) {   // 设置区渲染共用核: 设置modal(带标题)与块页(仅desc)共用
+    const sec = document.createElement('div');
+    sec.className = 'settings-card';
+    sec.innerHTML = (withTitle ? '<h3 class="settings-section-title">' + esc(s.title || s.label || '') + '</h3>' : '')
+      + (s.desc ? '<p class="settings-hint"' + (withTitle ? '' : ' style="margin-top:0"') + '>' + esc(s.desc) + '</p>' : '');
+    const host = document.createElement('div'); host.className = 'sec-body';
+    sec.appendChild(host);
+    parent.appendChild(sec);
+    try { s.render(host, { modal: o, toast }); } catch (e) { host.textContent = '渲染失败: ' + e.message; }
+  }
+  function openSettings() {
+    const o = mkModal('<h2>设置</h2><div id="settings-body"></div>', true);
+    const body = o.querySelector('#settings-body');
+    if (!settingsSections.length) body.innerHTML = '<p class="settings-hint">没有块注册设置区。</p>';
+    for (const s of settingsSections.slice().sort((a, b) => (a.order || 9) - (b.order || 9))) renderSection(s, body, o, true);
+  }
+  /* ── 侧栏抽屉 + 任务栏 + 开始菜单接线 ── */
+  $('sb-list').innerHTML = '<div class="sb-item active">🖥 Desktop</div><div class="sb-slot" id="sb-slot"></div>'; // 首项 .sb-item + #sb-slot 是 workflow 的挂点契约, 顺序不可变
+  const sidebar = $('app-sidebar');
+  const closeDrawer = () => sidebar.classList.remove('open');
+  const startBtn = $('win-start-btn'), startMenu = $('win-start-menu');
+  function closeStartMenu() { startMenu.classList.remove('show'); startBtn.classList.remove('active'); }
+  $('win-drawer').onclick = e => { e.stopPropagation(); closeStartMenu(); sidebar.classList.toggle('open'); };
+  ctx.listen(document, 'click', e => { if (sidebar.classList.contains('open') && !sidebar.contains(e.target) && !e.target.closest('#win-drawer')) closeDrawer(); });
+  ctx.listen(sidebar, 'click', e => { const el = e.target; if (el.closest('.sb-item') || el.closest('[class^="wf-"], [class*=" wf-"]')) setTimeout(closeDrawer, 120); }); // 选中条目后收抽屉(先让 workflow 的 handler 跑)
+  startBtn.onclick = e => { e.stopPropagation(); closeDrawer(); startMenu.classList.toggle('show'); startBtn.classList.toggle('active', startMenu.classList.contains('show')); };
+  ctx.listen(document, 'click', e => { if (startMenu.classList.contains('show') && !startMenu.contains(e.target) && !startBtn.contains(e.target) && e.target !== startBtn) closeStartMenu(); });
+  $('win-settings').onclick = () => { closeStartMenu(); openSettings(); };
+  $('win-src').onclick = () => { closeStartMenu(); codeOpen(ctx.id); };
+  $('win-refresh').onclick = () => { closeStartMenu(); renderApps(); renderTiles(); toast('已刷新'); };
+  const clock = $('win-clock');
+  function tickClock() {
+    if (!clock) return; const d = new Date();
+    clock.innerHTML = '<div>' + d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit', hour12: false }) + '</div>'
+      + '<div style="font-size:10px;opacity:.75">' + d.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit', weekday: 'short' }) + '</div>';
+  }
+  tickClock(); ctx.timer(tickClock, 10000, true); // 第三参 true=循环
+
+  /* ── 壁纸: kv settings:ui.wallpaper, 默认 picsum 随机; 预载失败保留当前(诚实 toast) ── */
+  const wallpaperSize = () => innerWidth <= 700 ? '1080/1920' : '1920/1080';
+  const randomWallpaperUrl = () => 'https://picsum.photos/' + wallpaperSize() + '?random=' + Date.now();
+  async function loadWallpaper(url, opt) {
+    opt = opt || {}; const img = new Image(); img.referrerPolicy = 'no-referrer';
+    img.onload = async () => {
+      if (opt.save) await ctx.kv.set('settings:ui.wallpaper', { url, source: opt.source || 'custom', at: Date.now() });
+      document.documentElement.style.setProperty('--shell-wallpaper', 'url(' + url + ')');
+      if (opt.toast) toast(opt.toast);
+    };
+    img.onerror = () => toast('壁纸加载失败，已保留当前壁纸');
+    img.src = url;
+  }
+  async function applyWallpaper() { const v = await ctx.kv.get('settings:ui.wallpaper'); if (v && v.url) loadWallpaper(v.url); else refreshWallpaper(); }
+  async function refreshWallpaper() { loadWallpaper(randomWallpaperUrl(), { save: true, source: 'picsum', toast: '已换桌面壁纸' }); }
+  $('win-refresh-wallpaper').onclick = refreshWallpaper;
+  $('win-custom-wallpaper').onclick = async () => {
+    closeStartMenu();
+    const old = (await ctx.kv.get('settings:ui.wallpaper')) || {};
+    const url = prompt('输入图片地址作为桌面壁纸', old.url || '');
+    if (url) loadWallpaper(url, { save: true, source: 'custom', toast: '已设置自定义壁纸' });
+  };
+  /* 桌面右键/长按菜单 */
+  const desktop = $('page-apps');
+  desktop.oncontextmenu = e => {
+    if (e.target.closest('.app-card,.desktop-folder,.win-taskbar,.win-start-menu,.win-folder-window')) return;
+    e.preventDefault();
+    const r = desktop.getBoundingClientRect(); const at = { x: e.clientX - r.left, y: e.clientY - r.top };
+    showMenu(e.clientX, e.clientY, [
+      { k: 'folder', t: '新建文件夹', fn: async () => { const fs = await getFolders(); const id = 'f' + Date.now().toString(36); fs.push({ id, name: '新建文件夹', items: [] }); await putFolders(fs); await setPos('folder:' + id, at.x, at.y); renderApps(); } },
+      { k: 'paste', t: '粘贴到桌面', disabled: !deskClipboard, fn: async () => pasteTo(null, at) }, '-',
+      { k: 'arrange', t: '自动排列图标', fn: arrangeDesktop },
+      { k: 'refresh', t: '刷新', fn: () => { renderApps(); renderTiles(); } },
+      { k: 'wall', t: '换壁纸', fn: refreshWallpaper }, '-',
+      { k: 'edit', t: '✎ 编辑界面', fn: openUiEditor }
+    ]);
+  };
+  let _rzT = null;
+  ctx.listen(window, 'resize', () => { clearTimeout(_rzT); _rzT = setTimeout(renderApps, 180); }); // 旋转/改窗后按新格子重排
+
+  /* ── 视图定位(为 agent): 语义骨架 = 真实用户所见(当前在哪个界面/桌面有谁/开着什么); 主读运行时 DOM, 与 agent 眼手 runtime.snapshot(DOM 细节)/waitFor 互补 ── */
+  function uiState() {
+    const doc = document, q = s => doc.querySelector(s), has = (s, c) => { const e = q(s); return !!(e && e.classList.contains(c)); };
+    const modals = [].slice.call(doc.querySelectorAll('.ad-overlay'));
+    const top = modals[modals.length - 1];
+    const modalTitle = top ? (((top.querySelector('h2') || {}).textContent) || '').replace(/\s+/g, ' ').trim() : null;
+    const runnerOpen = has('#runner-overlay', 'show');
+    const page = modalTitle ? (modalTitle === '设置' ? 'settings' : 'blockPage') : (runnerOpen ? 'runner' : 'desktop');
+    const desktopIcons = [].slice.call(doc.querySelectorAll('.app-card[data-id]')).map(el => ({ id: el.dataset.id, name: (((el.querySelector('h3') || {}).textContent) || '').trim(), icon: (((el.querySelector('.icon') || {}).textContent) || '').trim(), kind: 'app' }))
+      .concat([].slice.call(doc.querySelectorAll('.desktop-folder[data-id]')).map(el => ({ id: el.dataset.id, name: (((el.querySelector('.name') || {}).textContent) || '').trim(), kind: 'folder', count: +(((el.querySelector('.count') || {}).textContent) || 0) })));
+    const taskbarButtons = [].slice.call(doc.querySelectorAll('.win-taskbar button')).map(b => ({ id: b.id || null, label: ((b.textContent || '').replace(/\s+/g, ' ').trim()).slice(0, 24) })).filter(b => b.id || b.label);
+    const openWindows = [].slice.call(doc.querySelectorAll('#win-task-windows button')).map(b => ({ label: ((b.textContent || '').replace(/\s+/g, ' ').trim()).slice(0, 30) }));
+    return {
+      page, modalTitle,
+      startMenuOpen: has('#win-start-menu', 'show'),
+      drawerOpen: has('#app-sidebar', 'open'),
+      openRunner: runnerOpen ? (runnerAppId || null) : null,
+      openWindows, desktopIcons, taskbarButtons,
+      wallpaper: ((getComputedStyle(doc.documentElement).getPropertyValue('--shell-wallpaper')) || '').trim() || null,
+      hint: '语义骨架(当前界面/桌面图标/开着的窗口)。界面里具体按钮/输入框/坐标用 runtime.snapshot {id:"host"}; 等元素出现用 runtime.waitFor {id:"host",...}'
+    };
+  }
+  /* ── 服务与事件(state=agent 视图定位) ── */
+  ctx.provide('ui', {
+    modal: mkModal, toast, openRunner, openSettings, state: uiState,
+    registerSettingsSection(s) { settingsSections.push(s); },
+    registerBlockPage(blockId, open) { blockPages[blockId] = open; },
+    openBlockPage,
+    topbarSlot() { return $('topbar-slot'); }, // 扩展位: 供任意块向任务栏注入控件(id 沿用 topbar-slot)
+    sidebarSlot() { return $('sb-slot'); }, // 扩展位: 供任意块向侧栏 Workspaces 注入条目
+  });
+  if (ctx.sdk && ctx.sdk.handle) ctx.sdk.handle('ui.state', async () => uiState()); // agent 经 run call:ui.state 拿语义视图, 独立穿衣无 sdk 镜像则跳过
+  if (ctx.kv) ctx.kv.get('skill:petri:ui-shell:机制-界面之眼').then(cur => { const val = { v: 1, seededBy: 'petri:ui-shell', desc: '要知道用户此刻看到什么界面(在哪页/桌面有哪些图标/开着什么窗口)时读 — ui.state 说明书(能力在本块, 知识随块)', guide: 'run call:ui.state 一次拿准语义骨架, 别 snapshot host 一锅粥自己数。返回 {page: desktop|runner|settings|blockPage, modalTitle, startMenuOpen, drawerOpen, openRunner(运行中应用id), openWindows[], desktopIcons[](id/name/kind), taskbarButtons[], wallpaper} — 主读运行时 DOM, 即真实用户所见。语义归 ui.state; 具体按钮/输入框/坐标与点击输入归 agent 眼手 runtime.snapshot/click{id:"host"}; 元素延迟出现用 runtime.waitFor。ui-shell 缺席则无此能力, 兜底页直接 snapshot host。' }; if (!cur || cur.v !== val.v) ctx.kv.set('skill:petri:ui-shell:机制-界面之眼', val); }).catch(() => { }); // 知识随块: ui.state 说明书由本块自种(版本式重播)
+  // apps/store 提供者在上方; 这里只消费事件
+  ctx.on('apps:changed', renderApps);
+  ctx.on('blocks:changed', renderTiles);
+
+  /* ── 界面样式(壳自己的功能页): 改设计 token, 立即生效并持久化 ── */
+  const STYLE_DEFS = [   // [键, 标签, 控件, 缺省] — 落地在 applyStyles 里逐项写, 不经变量名列
+    ['accent', '强调色', 'color', '#B5FF00'],
+    ['fontScale', '全局字号', 'range:0.85,1.2,0.05', '1'],
+    ['radius', '圆角', 'range:4,22,2', '14'],
+  ];
+  async function applyStyles() {
+    const v = (await ctx.kv.get('settings:ui.styles')) || {};
+    const r = document.documentElement.style;
+    r.setProperty('--accent', v.accent || '#B5FF00');
+    r.setProperty('--radius-lg', (v.radius || 14) + 'px');
+    document.documentElement.style.fontSize = (16 * (parseFloat(v.fontScale) || 1)) + 'px';
+  }
+  applyStyles();
+  ctx.timer(() => {
+    settingsSections.push({
+      id: 'shell-style', blockId: ctx.id, label: '界面样式', title: '🎨 界面样式', order: 0,
+      desc: '基础界面元素样式。改动立即生效并持久保存; 更深的改造在源码管理里做(整段 CSS 都是本块源码, 可热替换), 或直接吩咐 agent。',
+      async render(el, h) {
+        const v = (await ctx.kv.get('settings:ui.styles')) || {};
+        el.innerHTML = STYLE_DEFS.map(d => {
+          const cur = v[d[0]] != null ? v[d[0]] : d[3];
+          if (d[2] === 'color') return '<label class="settings-label">'
+            + d[1]
+            + '</label><input type="color" data-k="'
+            + d[0]
+            + '" value="'
+            + cur
+            + '" style="width:64px;height:32px;border:1px solid var(--border);background:var(--bg);border-radius:8px">';
+          const p = d[2].split(':')[1].split(',');
+          return '<label class="settings-label" style="margin-top:10px">'
+            + d[1]
+            + ' <span style="color:var(--text-muted)" id="sv-'
+            + d[0]
+            + '">'
+            + cur
+            + '</span></label><input type="range" data-k="'
+            + d[0]
+            + '" min="'
+            + p[0]
+            + '" max="'
+            + p[1]
+            + '" step="'
+            + p[2]
+            + '" value="'
+            + cur
+            + '" style="width:100%">';
+        }).join('') + '<div style="margin-top:12px"><button class="ad-btn-ghost" id="st-reset">恢复默认</button></div>';
+        el.querySelectorAll('[data-k]').forEach(inp => inp.oninput = async () => {
+          const cur = (await ctx.kv.get('settings:ui.styles')) || {};
+          cur[inp.dataset.k] = inp.value;
+          const lab = el.querySelector('#sv-' + inp.dataset.k);
+          if (lab) lab.textContent = inp.value;
+          await ctx.kv.set('settings:ui.styles', cur);
+          applyStyles();
+        });
+        el.querySelector('#st-reset').onclick = async () => {
+          await ctx.kv.del('settings:ui.styles');
+          applyStyles();
+          h.toast('已恢复默认');
+        };
+      },
+    });
+  }, 0);
+
+  /* ── 长按气泡说话: 零改 agent。观察-纠正式手势接管: 不拦 agent 的指针事件,
+     松开后按 dock 是否被展开做同步纠正(同一宏任务内浏览器未渲染, 无闪烁)。
+     长按=录音(松开→转写→可编辑气泡→点发送才交 agent); 双击=打开对话框; 单击=提示; 拖动=原样放行。
+     全链走公共服务 ctx.service('agent'/'llm'), agent/ai 缺席时诚实降级 —— 孤儿可活。 ── */
+  const voxDispose = (function voiceFab() {
+    ctx.css('#agent-dock.collapsed{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}\n' /* 手机长按防系统菜单/防滚动手势抢夺(pointercancel 掐录音); 顺带修好气泡触摸拖动 */
+      + '#agent-dock.vox-rec-glow{box-shadow:0 0 0 3px rgba(255,68,68,.35),0 0 22px rgba(255,68,68,.55)!important;animation:vox-pulse 1s infinite}\n'
+      + '@keyframes vox-pulse{0%,100%{opacity:1}50%{opacity:.75}}\n'
+      + '.vox-panel{position:fixed;z-index:131;width:min(340px,calc(100vw - 28px));background:var(--bg-2);border:1px solid var(--border-strong);'
+      + 'border-radius:12px 12px 4px 12px;padding:10px 12px;font-size:13px;color:var(--text);box-shadow:0 8px 28px rgba(0,0,0,.5);line-height:1.5}\n'
+      + '.vox-panel .vox-st{display:flex;align-items:center;gap:8px;color:var(--text-muted);font-size:12px}\n'
+      + '.vox-panel textarea{width:100%;margin-top:2px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:8px;'
+      + 'padding:8px 10px;font-size:13px;line-height:1.5;resize:none;max-height:40vh;overflow-y:auto;box-sizing:border-box}\n'
+      + '.vox-panel .vox-acts{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}\n'
+      + '.vox-panel .vox-send{background:var(--accent);color:#000;border:none;border-radius:8px;padding:7px 16px;font-weight:600;cursor:pointer}\n'
+      + '.vox-panel .vox-del{background:transparent;color:var(--text-muted);border:1px solid var(--border);border-radius:8px;padding:7px 12px;cursor:pointer}\n'
+      + '.vox-hint{position:fixed;z-index:131;background:var(--bg-2);border:1px solid var(--border-strong);border-radius:12px 12px 4px 12px;'
+      + 'padding:7px 11px;font-size:12px;color:var(--text);box-shadow:0 6px 20px rgba(0,0,0,.45);pointer-events:none}');
+    const dockEl = () => document.getElementById('agent-dock');
+    const llm = () => ctx.service('llm'), agentSvc = () => ctx.service('agent'); // 惰性取: ai 在本块之后装载, init 时取必空
+    let press = null, lastTap = 0, tapT = null, hintT = null;
+    let micStream = null, recorder = null, chunks = [], recStart = 0, recToken = 0, recTick = null;
+    let panel = null, hintEl = null;
+
+    function anchor(el) { const d = dockEl(); const r = d ? d.getBoundingClientRect() : { right: innerWidth - 24, top: innerHeight - 76 };
+      el.style.right = Math.max(8, innerWidth - r.right) + 'px'; el.style.bottom = (innerHeight - r.top + 10) + 'px'; }
+    function killPanel() { if (panel) { panel.remove(); panel = null; } }
+    function showPanel(html) { killPanel(); panel = document.createElement('div'); panel.className = 'vox-panel'; panel.innerHTML = html; anchor(panel); ctx.root.appendChild(panel); return panel; }
+    function voxHint(text, ms) { if (hintEl) hintEl.remove(); hintEl = document.createElement('div'); hintEl.className = 'vox-hint'; hintEl.textContent = text;
+      anchor(hintEl); ctx.root.appendChild(hintEl); clearTimeout(hintT); hintT = setTimeout(() => { if (hintEl) { hintEl.remove(); hintEl = null; } }, ms || 1800); }
+    const collapseDock = () => { const d = dockEl(); if (d && d.classList.contains('expanded')) { const m = document.getElementById('agent-min'); if (m) m.click(); } };
+
+    async function toB64(blob) { const buf = new Uint8Array(await blob.arrayBuffer()); let s = ''; const CH = 0x8000;
+      for (let i = 0; i < buf.length; i += CH) s += String.fromCharCode.apply(null, buf.subarray(i, i + CH)); return btoa(s); }
+    /* 16k 单声道 WAV(与 agent 🎤 同算法; stepfun 等 ASR 只吃 wav/pcm 16k; iOS 的 mp4 录音经 decodeAudioData 同样能转) */
+    async function blobToWav16k(blob) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      const ac = new AC();
+      const buf = await ac.decodeAudioData(await blob.arrayBuffer());
+      const rate = 16000, len = Math.ceil(buf.duration * rate);
+      const oc = new OfflineAudioContext(1, len, rate);
+      const srcN = oc.createBufferSource(); srcN.buffer = buf; srcN.connect(oc.destination); srcN.start();
+      const out = await oc.startRendering(); ac.close();
+      const pcm = out.getChannelData(0);
+      const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+      const wr = (o, s) => { for (let i = 0; i < s.length; i++) wav.setUint8(o + i, s.charCodeAt(i)); };
+      wr(0, 'RIFF'); wav.setUint32(4, 36 + pcm.length * 2, true); wr(8, 'WAVEfmt '); wav.setUint32(16, 16, true);
+      wav.setUint16(20, 1, true); wav.setUint16(22, 1, true); wav.setUint32(24, rate, true); wav.setUint32(28, rate * 2, true);
+      wav.setUint16(32, 2, true); wav.setUint16(34, 16, true); wr(36, 'data'); wav.setUint32(40, pcm.length * 2, true);
+      for (let i = 0; i < pcm.length; i++) { const s = Math.max(-1, Math.min(1, pcm[i])); wav.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true); }
+      let bin = ''; const u8 = new Uint8Array(wav.buffer); const CH = 0x8000;
+      for (let i = 0; i < u8.length; i += CH) bin += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+      return { data: btoa(bin), mimeType: 'audio/wav' };
+    }
+    /* 挑 STT 厂商: 判据与 agent resolveVoicePrefs 同构(能力自报+verified 台账); voice.prefs 是裸全局 kv 键(软契约, 与 agent 🎤 同偏好) */
+    async function pickSTT() {
+      const svc = llm(); if (!svc || !svc.getCapabilities) return null;
+      const caps = await svc.getCapabilities();
+      const rows = (caps || []).filter(p => p.hasKey && (p.capabilities || []).includes('audio.transcribe'));
+      const capModel = p => p && (p.sttModel || ((p.verified || {})['audio.transcribe'] || {}).model) || '';
+      const saved = (await ctx.kv.get('voice.prefs').catch(() => null)) || {};
+      const st = rows.find(p => p.id === saved.sttProviderId) || rows.filter(p => (p.verified || {})['audio.transcribe'] && capModel(p))[0] || rows.filter(p => capModel(p))[0] || rows[0] || null;
+      return st ? { providerId: st.id, model: capModel(st) || '' } : null;
+    }
+
+    async function startRecording() {
+      if (!agentSvc()) { voxHint('agent 不在岗, 无法代办'); press = null; return; }
+      const token = ++recToken;
+      try {
+        if (!micStream || !micStream.active) micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        else micStream.getTracks().forEach(t => t.enabled = true);
+      } catch (e) { voxHint('麦克风不可用: ' + e.message, 3200); press = null; return; }
+      if (token !== recToken || !press || !press.long) { micStream.getTracks().forEach(t => t.enabled = false); return; } // 授权弹窗期间已松手: 不录
+      chunks = []; recorder = new MediaRecorder(micStream);
+      const inst = recorder; // 闭包捕获实例: 快速连按时 onstop 不错拿新 recorder
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = () => onRecStop(inst);
+      recorder.start(); recStart = Date.now();
+      const d = dockEl(); if (d) d.classList.add('vox-rec-glow');
+      const p = showPanel('<div class="vox-st">🔴 正在听 <span class="vox-sec">0</span>s… 松开结束</div>');
+      recTick = setInterval(() => { const s = p.querySelector('.vox-sec'); if (s) s.textContent = Math.round((Date.now() - recStart) / 1000); }, 500);
+    }
+    function stopRecording(discard) {
+      clearInterval(recTick); recTick = null;
+      const d = dockEl(); if (d) d.classList.remove('vox-rec-glow');
+      if (recorder && recorder.state === 'recording') { recorder._discard = !!discard; recorder.stop(); }
+      else if (discard) killPanel();
+    }
+    async function onRecStop(rec) {
+      if (recorder === rec) recorder = null;
+      if (micStream) micStream.getTracks().forEach(t => t.enabled = false);
+      if (rec && rec._discard) { killPanel(); voxHint('已取消'); return; }
+      if (Date.now() - recStart < 350) { killPanel(); voxHint('说话时间太短'); return; }
+      const blob = new Blob(chunks, { type: (rec && rec.mimeType) || 'audio/webm' });
+      showPanel('<div class="vox-st">◌ 转写中…</div>');
+      try {
+        const svc = llm(); if (!svc || !svc.transcribeAudio) throw new Error('语音服务不在岗(ai 块缺席)');
+        const st = await pickSTT(); if (!st) throw new Error('转写需要一个已配 Key 且带听写(audio.transcribe)能力的厂商 — 去 ⚙ AI 配置添加');
+        const audio = (await blobToWav16k(blob).catch(() => null)) || { data: await toB64(blob), mimeType: blob.type || 'audio/webm' };
+        const r = await svc.transcribeAudio(Object.assign({ providerId: st.providerId, audio }, st.model ? { model: st.model } : {}));
+        const text = (r && r.text || '').trim();
+        if (!text) { showResult('', '没听清(转写为空), 可直接打字或再试'); return; }
+        showResult(text);
+      } catch (e) { showError('转写失败: ' + e.message); }
+    }
+    function showError(msg) {
+      const p = showPanel('<div class="vox-st">⚠ <span></span></div><div class="vox-acts"><button class="vox-del">关闭</button></div>');
+      p.querySelector('.vox-st span').textContent = msg; p.querySelector('.vox-del').onclick = killPanel;
+    }
+    /* 结果气泡: 完整展现、点文字可改、✕ 删除、再点发送才交 agent(运行中 agent 自己会转"插话") */
+    function showResult(text, note) {
+      const p = showPanel((note ? '<div class="vox-st">' + esc(note) + '</div>' : '') + '<textarea rows="1"></textarea>'
+        + '<div class="vox-acts"><button class="vox-del" title="丢弃">✕</button><button class="vox-send">📨 发送</button></div>');
+      const ta = p.querySelector('textarea'); ta.value = text;
+      const grow = () => { ta.style.height = 'auto'; ta.style.height = Math.min(ta.scrollHeight + 2, innerHeight * .4) + 'px'; };
+      ta.oninput = grow; grow();
+      p.querySelector('.vox-del').onclick = killPanel;
+      p.querySelector('.vox-send').onclick = () => { const t = ta.value.trim(); if (!t) return;
+        const a = agentSvc(); if (!a) return voxHint('agent 不在岗');
+        Promise.resolve(a.send(t)).catch(e => voxHint('发送失败: ' + e.message, 3000));
+        showPanel('<div class="vox-st">✓ 已发给 agent, 步骤看气泡上方 →</div>'); setTimeout(killPanel, 1600); };
+    }
+
+    /* 手势: document capture 观察 down/move; up 用冒泡 —— 冒泡到 document 时 agent 的处理器已跑完, 展开与否已见分晓, 同步纠正无闪烁 */
+    const onDown = e => { if (e.button !== 0 || press) return; const t = e.target; if (!t || !t.closest || !t.closest('#agent-dock.collapsed')) return;
+      press = { id: e.pointerId, x: e.clientX, y: e.clientY, long: false, t: setTimeout(() => { if (press) { press.long = true; startRecording(); } }, 420) }; };
+    const onMove = e => { if (!press || e.pointerId !== press.id) return;
+      if (!press.long && Math.abs(e.clientX - press.x) + Math.abs(e.clientY - press.y) > 6) { clearTimeout(press.t); press = null; } }; // 位移>6px: 纯拖动, 全交 agent
+    const onUp = e => { if (!press || e.pointerId !== press.id) return; const p = press; press = null; clearTimeout(p.t);
+      const d = dockEl(); if (!d) return;
+      if (p.long) { collapseDock(); stopRecording(false); return; }
+      if (!d.classList.contains('expanded')) { lastTap = 0; return; } // agent 没展开 = 拖动收尾, 与我们无关
+      const now = Date.now(); // 双击判定用时间戳不用计数器: 对计时器竞态免疫; 450ms 窗(320 对慢速双击太窄)
+      if (now - lastTap < 450) { lastTap = 0; clearTimeout(tapT); killPanel(); const a = agentSvc(); if (a && a.openDock) { try { a.openDock(); } catch (e2) { } } } // 双击: 主动 openDock(幂等), 不赌 agent 已展开
+      else { lastTap = now; collapseDock(); clearTimeout(tapT); tapT = setTimeout(() => { lastTap = 0; voxHint('长按说话 · 双击打开'); }, 450); } };
+    const onCancel = e => { if (!press || e.pointerId !== press.id) return; const p = press; press = null; clearTimeout(p.t); if (p.long) stopRecording(true); };
+    const onCtx = e => { const t = e.target; if (t && t.closest && t.closest('#agent-dock.collapsed')) e.preventDefault(); }; // 挡 Android 长按系统菜单
+    document.addEventListener('pointerdown', onDown, true);
+    document.addEventListener('pointermove', onMove, true);
+    document.addEventListener('pointerup', onUp);
+    document.addEventListener('pointercancel', onCancel, true);
+    document.addEventListener('contextmenu', onCtx, true);
+    return function dispose() {
+      document.removeEventListener('pointerdown', onDown, true); document.removeEventListener('pointermove', onMove, true);
+      document.removeEventListener('pointerup', onUp); document.removeEventListener('pointercancel', onCancel, true);
+      document.removeEventListener('contextmenu', onCtx, true);
+      clearTimeout(tapT); clearTimeout(hintT); clearInterval(recTick); if (press) { clearTimeout(press.t); press = null; }
+      if (micStream) micStream.getTracks().forEach(t => t.stop());
+      killPanel(); if (hintEl) { hintEl.remove(); hintEl = null; }
+      const d = dockEl(); if (d) d.classList.remove('vox-rec-glow');
+    };
+  })();
+
+  /* ══ 点选编辑器: 一个编辑器两种作用域 — 桌面右键=全局(宿主+一切可及帧) / runner ✎=只限该应用(差异只有 scope 字段)。
+     加一击: 第一击选中(拦下), 已选中元素及其内部的交互原样放行; dblclick/mousedown/mouseup 同规则拦(构成双击的两击必须都是放行击);
+     放行连击停 1.2s 自动取消选中(每个手势都严格+1击; 焦点在选中元素内=正在打字, 不取消)。
+     改字: 文字叶子选中即开 contentEditable(放行击恰好落光标), 面板文字框与之双向同步; 回车/换选/取消提交, 归属判定不过=还原+如实说。
+     编辑即临时解锁(零改别块代码): 隔离 srcdoc 沙箱帧 sandbox 暂加同源重载(桥的通道号烤在文档里, 重载自动重握手), 退出逐帧还原, 绝不动 trust。
+     改动归宿(真身唯一): 宿主样式→全局皮肤 kv; 应用样式/文字→应用源码(petri-ui-edits 覆盖层/字面, orig 首存); 块与块窗文字→块源码字面(code 在岗带解析对齐);
+     块窗样式暂不支持点选(导流 agent: 界面住源码字符串, 手术脆)。独立态可用(样式落本地存储, 源码类保存如实拒绝)。长按未选中元素→uiref 卡片。 ══ */
+  ctx.css('.uied-hud{position:fixed;right:14px;top:14px;z-index:13000;width:248px;max-height:84vh;overflow:auto;background:var(--bg-2,#161616);border:1px solid var(--border,#333);border-radius:12px;padding:12px;box-shadow:0 14px 44px rgba(0,0,0,.55);font-size:12px;display:none}'
+    + '.uied-on .uied-hud{display:block}.uied-hud h4{margin:0 0 8px;font-size:13px}'
+    + '.uied-tag{display:block;font-family:var(--mono,monospace);font-size:10px;color:var(--text-muted,#999);word-break:break-all;background:rgba(255,255,255,.05);border-radius:6px;padding:5px 7px;margin:4px 0}'
+    + '.uied-hud label{display:block;font-size:10px;color:var(--text-muted,#999);margin:8px 0 3px}.uied-hud input[type=color]{width:56px;height:26px;border:1px solid var(--border,#333);background:transparent;border-radius:6px}'
+    + '.uied-hud input[type=range]{width:100%}.uied-hud input[type=text]{width:100%;box-sizing:border-box;background:var(--bg,#0d0d0d);border:1px solid var(--border,#333);color:var(--text,#eee);border-radius:7px;padding:6px 8px;font-size:12px}'
+    + '.uied-hud button{margin:4px 4px 0 0;padding:5px 9px;font-size:11px;border-radius:7px;border:1px solid var(--border,#333);background:var(--surface,#1c1c1c);color:var(--text,#eee);cursor:pointer}'
+    + '.uied-hint{font-size:10px;color:var(--text-muted,#888);line-height:1.5;margin-top:8px}.win-menu{z-index:13001}');
+  const SKIN_KEY = 'settings:ui.skin';
+  const skinCss = o => Object.keys(o || {}).filter(s => Object.keys(o[s] || {}).length)
+    .map(s => s + '{' + Object.entries(o[s]).map(kv => kv[0] + ':' + kv[1] + ' !important').join(';') + '}').join('\n');
+  const skinElOf = () => { let el = document.getElementById('ui-skin'); if (!el) { el = document.createElement('style'); el.id = 'ui-skin'; document.head.appendChild(el); } return el; }; // 按 id 复用: 热重启不叠副本; 本块缺席时残留至刷新(皮肤停更, 如实)
+  async function applySkin() { skinElOf().textContent = skinCss((await ctx.kv.get(SKIN_KEY)) || {}); }
+  applySkin();
+  if (ctx.sdk && ctx.sdk.handle) ctx.sdk.handle('ui.applySkin', async () => { // agent write kv 皮肤后调它立即上屏(免重载); 值必须是对象 — CSS 文本会被拆成单字符垃圾规则, 如实拒绝并教形状(R1 实测模型会写错)
+    const v = (await ctx.kv.get(SKIN_KEY)) || {};
+    if (typeof v !== 'object' || Array.isArray(v)) throw new Error('settings:ui.skin 值必须是 {"选择器":{"属性":"值"}} 对象, 收到 ' + (Array.isArray(v) ? '数组' : typeof v) + ' — 改写后重试');
+    await applySkin(); return { ok: true, rules: Object.keys(v).length };
+  });
+  let uied = null, uiedHud = null;
+  const ED_RE = /<style id="petri-ui-edits">\n?([\s\S]*?)<\/style>/;
+  const parseOv = t => { const out = {}; for (const line of String(t || '').split('\n')) { const r = /^(.+?)\{(.*)\}$/.exec(line.trim()); if (r) { const ps = {}; r[2].split(';').forEach(p => { const i = p.indexOf(':'); if (i > 0) ps[p.slice(0, i).trim()] = p.slice(i + 1).replace('!important', '').trim(); }); out[r[1]] = ps; } } return out; };
+  const selOf = el => { // 选择器稳定性: 全文唯一 id > 全文唯一 class > nth-of-type 路径(界面会演化, 锚点优先)
+    const doc = el.ownerDocument, uniq = s => { try { return doc.querySelectorAll(s).length === 1; } catch (e) { return false; } };
+    const seg = [];
+    for (let n = el; n && n !== doc.body; n = n.parentElement) {
+      if (n.id && uniq('#' + CSS.escape(n.id))) { seg.unshift('#' + CSS.escape(n.id)); return seg.join('>'); }
+      const c = [].find.call(n.classList, k => uniq('.' + CSS.escape(k)));
+      if (c) { seg.unshift('.' + CSS.escape(c)); return seg.join('>'); }
+      let i = 1; for (let s = n; (s = s.previousElementSibling);) if (s.tagName === n.tagName) i++;
+      seg.unshift(n.tagName.toLowerCase() + ':nth-of-type(' + i + ')');
+    }
+    return 'body>' + seg.join('>');
+  };
+  const toHex = c => { const m = /rgba?\((\d+),\s*(\d+),\s*(\d+)/.exec(c || ''); return m ? '#' + [m[1], m[2], m[3]].map(n => (+n).toString(16).padStart(2, '0')).join('') : '#000000'; };
+  const okEl = (el, doc) => (el && el.nodeType === 1 && el !== doc.body && el !== doc.documentElement && !/^(SCRIPT|STYLE|LINK|META|TITLE|BR|HR)$/.test(el.tagName)) ? el : null;
+  const uiedFrameOf = doc => uied.frames.find(f => f.doc === doc) || null;
+  const uiedHome = el => { // 元素归宿: 宿主块(block)/运行中应用(app)/块自带窗(blockframe)/stem 层
+    const doc = el.ownerDocument;
+    if (doc === document) { const b = el.closest && el.closest('[data-block-id]'); return b ? { kind: 'block', id: b.getAttribute('data-block-id') } : { kind: 'stem', id: null }; }
+    const fr = uiedFrameOf(doc), fe = fr && fr.el;
+    if (fr && fr.appId) return { kind: 'app', id: fr.appId };
+    const b = fe && fe.closest && fe.closest('[data-block-id]');
+    return b ? { kind: 'blockframe', id: b.getAttribute('data-block-id') } : { kind: 'stem', id: null };
+  };
+  const uiedStore = el => { const h = uiedHome(el); return h.kind === 'app' ? (uied.appEdits[h.id] = uied.appEdits[h.id] || {}) : h.kind === 'blockframe' ? null : uied.edits; }; // 样式归宿: 应用→自家覆盖层; 块窗→null(导流 agent); 其余→全局皮肤
+  function uiedLive() { // 预览: 宿主样式直写 #ui-skin(退出时 applySkin 从 kv 重渲染, 未保存的自然消失); 应用样式写帧内 petri-ui-edits 覆盖层
+    skinElOf().textContent = skinCss(uied.edits);
+    for (const aid of Object.keys(uied.appEdits)) {
+      const frs = uied.frames.filter(f => f.appId === aid), fr = frs[frs.length - 1]; if (!fr) continue; // 取最新帧(重载后旧文档条目作废)
+      try { let fs = fr.doc.getElementById('petri-ui-edits'); if (!fs) { fs = fr.doc.createElement('style'); fs.id = 'petri-ui-edits'; (fr.doc.head || fr.doc.body).appendChild(fs); } fs.textContent = skinCss(uied.appEdits[aid]); } catch (e) { }
+    }
+    uied.dirty = true; uiedBar();
+  }
+  function uiedBar() {
+    let n = Object.keys(uied.edits).filter(s => Object.keys(uied.edits[s]).length).length + uied.texts.length;
+    for (const a of Object.keys(uied.appEdits)) n += Object.keys(uied.appEdits[a]).filter(s => Object.keys(uied.appEdits[a][s]).length).length;
+    $('uied-count').textContent = '改动 ' + n + ' 处';
+  }
+  function uiedOwn(oldT, nwT, el) { // 文字归属定位: 归属块/应用源码里恰一处字面才敢写; 多处/无处如实拒绝导流 agent(宁拒不错改)
+    const probe = src => { for (const pair of [['>' + oldT + '<', '>' + nwT + '<'], [oldT, nwT]]) { const c = src.split(pair[0]).length - 1; if (c === 1) return { needle: pair[0], repl: pair[1] }; if (c > 1) return { multi: c }; } return null; };
+    const key = t => t.kind + ':' + t.id;
+    const applied = (tgt, src) => uied.texts.filter(t => key(t.tgt) === key(tgt)).reduce((z, t) => z.split(t.needle).join(t.repl), src);
+    const h0 = uiedHome(el);
+    const home = h0.kind === 'blockframe' ? { kind: 'block', id: h0.id } : h0; // 块窗的文字字面就住块源码
+    const whyOf = r => r ? '这段文字有 ' + r.multi + ' 处一样的, 分不清改哪个 — 选小一点或发给 agent' : '这段文字是程序算出来的, 直接改不了 — 发给 agent 能改';
+    if (home.kind === 'app') {
+      const m = uied.appRec[home.id]; if (!m) return { why: '拿不到应用源码(重开应用再试)' };
+      const r = probe(applied(home, m.code || ''));
+      return r && r.needle ? { ok: 1, tgt: home, needle: r.needle, repl: r.repl, tgtLabel: '应用 ' + (m.name || home.id) } : { why: whyOf(r) };
+    }
+    if (home.kind === 'stem') return { why: '这个元素不归任何块管, 请发给 agent' };
+    const b = ctx.stem.getBlock(home.id);
+    const r = b ? probe(applied({ kind: 'block', id: home.id }, b.code)) : null;
+    if (r && r.needle) return { ok: 1, tgt: { kind: 'block', id: home.id }, needle: r.needle, repl: r.repl, tgtLabel: '块 ' + home.id };
+    return { why: whyOf(r) };
+  }
+  function uiedText(el, nw, old) { // 原地改字提交: 归属判定过=记录(保存时写源码), 不过=还原+如实说
+    if (nw === old) return;
+    const own = uiedOwn(old, nw, el);
+    if (!own.ok) { try { el.textContent = old; } catch (e) { } return toast(own.why); }
+    uied.texts.push({ tgt: own.tgt, needle: own.needle, repl: own.repl, el, oldText: old, tgtLabel: own.tgtLabel });
+    uied.dirty = true; uiedBar(); toast('文字已改 → ' + own.tgtLabel + '(点 💾 保存生效)');
+  }
+  function uiedSide(el) {
+    const cs = el.ownerDocument.defaultView.getComputedStyle(el), s = selOf(el), home = uiedHome(el), store = uiedStore(el), box = $('uied-side');
+    const cur = store ? (store[s] || {}) : {};
+    const where = home.kind === 'app' ? 'miniapp:' + home.id : home.kind === 'blockframe' ? home.id + ' (块自带窗)' : home.kind === 'block' ? home.id : 'stem 层';
+    box.innerHTML = '<span class="uied-tag">属于: ' + esc(where) + '</span><span class="uied-tag">' + esc(s) + '</span>'
+      + (uied.selEdit ? '<label>文字(和元素同步, 回车确认)</label><input type="text" id="uied-ti" value="' + esc(el.textContent || '') + '">' : '')
+      + (store ? '<label>文字色</label><input type="color" data-p="color" value="' + toHex(cur.color || cs.color) + '">'
+        + '<label>背景色</label><input type="color" data-p="background-color" value="' + toHex(cur['background-color'] || cs.backgroundColor) + '">'
+        + '<label>字号 <span id="uied-fs">' + (cur['font-size'] || cs.fontSize) + '</span></label><input type="range" data-p="font-size" min="9" max="64" step="1" value="' + (parseInt(cur['font-size'] || cs.fontSize) || 16) + '">'
+        : '<div class="uied-hint">这里的样式暂不支持点选修改 — 📮 发给 agent 一句话搞定</div>')
+      + '<div>' + (store ? '<button id="uied-clear">清除此元素样式</button>' : '') + '<button id="uied-send">📮 发给 agent</button></div>'
+      + '<div class="uied-hint">点一下=选中 · 再点=正常使用(停一下自动取消选中) · 要双击的先选中再双击 · Esc=取消/退出 · 长按=发给 agent。</div>';
+    box.querySelectorAll('[data-p]').forEach(inp => inp.oninput = () => {
+      const p = inp.dataset.p, v = p === 'font-size' ? inp.value + 'px' : inp.value;
+      if (p === 'font-size') box.querySelector('#uied-fs').textContent = v;
+      const st = uiedStore(el); if (!st) return;
+      const e2 = st[s] = st[s] || {}; e2[p] = v; uiedLive();
+    });
+    const ti = box.querySelector('#uied-ti');
+    if (ti) { // 面板文字框 ↔ 元素双向同步: 框打字=元素即变(赋值不派发 input, 无回环), 元素上打字=框跟上; 提交仍走取消选中/回车的统一路
+      ti.oninput = () => { el.textContent = ti.value; };
+      ti.onkeydown = e2 => { if (e2.key === 'Enter') { e2.preventDefault(); uiedSelect(null); } };
+      if (uied.selSync) { try { el.removeEventListener('input', uied.selSync); } catch (e) { } }
+      uied.selSync = () => { ti.value = el.textContent || ''; };
+      el.addEventListener('input', uied.selSync);
+    }
+    const cl = box.querySelector('#uied-clear'); if (cl) cl.onclick = () => { const st = uiedStore(el); if (st) delete st[s]; uiedLive(); uiedSide(el); };
+    box.querySelector('#uied-send').onclick = () => uiedSend(el);
+  }
+  function uiedSelect(el) {
+    const prev = uied.sel;
+    if (prev && uied.selSync) { try { prev.removeEventListener('input', uied.selSync); } catch (e) { } uied.selSync = null; } // 面板同步监听随选中走
+    if (prev && uied.selEdit) { try { prev.removeAttribute('contenteditable'); const nw = prev.textContent || ''; if (nw !== uied.selText) uiedText(prev, nw, uied.selText); } catch (e) { } } // 文字提交点: 换选/取消/退出/保存都路过这里
+    if (prev) { try { prev.style.outline = uied.selPrev || ''; } catch (e) { } }
+    clearTimeout(uied.disarmT);
+    uied.sel = el; uied.selPrev = el ? el.style.outline : ''; uied.selAt = Date.now(); uied.selEdit = false;
+    if (el) {
+      if (!el.children.length && (el.textContent || '').trim() && uiedHome(el).kind !== 'stem') { // 文字叶子即开原地改字: 加一击的放行击恰好=落光标
+        try { el.contentEditable = 'plaintext-only'; } catch (e) { el.contentEditable = 'true'; }
+        uied.selText = el.textContent || ''; uied.selEdit = true;
+      }
+      el.style.outline = '2px solid #FF9500'; uiedSide(el);
+    }
+    else if ($('uied-side')) $('uied-side').innerHTML = '<div class="uied-hint">点一下任意元素即可选中 · 选中的再点一下=正常使用(可以边用边改) · 长按元素=发给 agent。</div>';
+  }
+  function uiedSend(el) { // 长按/📮: 元素变 uiref 卡片进 agent 对话框 — 卡片只给坐标事实(选择器/归属/文字/盒), 改法住本块 skill(知识随块, 不随卡片复读)
+    if (!ctx.service('agent')) return toast('agent 不在线, 发不出去');
+    const home = uiedHome(el), sel = selOf(el), r = el.getBoundingClientRect(), tx = (el.textContent || '').replace(/\s+/g, ' ').trim();
+    const where = home.kind === 'app' ? 'miniapp:' + home.id : home.kind === 'blockframe' ? home.id + '(块自带窗)' : home.kind === 'block' ? home.id : 'stem 层';
+    const text = ['选择器: ' + sel, '归属: ' + where, tx ? '文字: ' + tx.slice(0, 200) : '',
+      '盒: x' + Math.round(r.x) + ' y' + Math.round(r.y) + ' w' + Math.round(r.width) + ' h' + Math.round(r.height)].filter(Boolean).join('\n');
+    ctx.emit('agent:ask', { kind: 'uiref', name: '界面元素 ' + (tx.slice(0, 14) || el.tagName.toLowerCase()), ref: where + ' ' + sel, text });
+    toast('已发给 agent(输入框上方的小卡片)');
+  }
+  function uiedBindDoc(doc) { // 每份文档一套捕获监听(宿主+各可及帧同款); 全记 offs 随退出/dispose 摘除
+    const exempt = t => doc === document && ((uiedHud && uiedHud.contains(t)) || (t.closest && (t.closest('.win-menu') || t.closest('.ad-overlay.uied-x'))));
+    const pass = t => { try { return !!(uied.sel && uied.sel.ownerDocument === doc && uied.sel.contains(t)); } catch (e) { return false; } }; // 加一击: 已选中元素(含内部)原样放行
+    const on = (ev, fn) => { doc.addEventListener(ev, fn, true); uied.offs.push(() => doc.removeEventListener(ev, fn, true)); };
+    let hov = null, hovPrev = '', lp = null, lpAt = null;
+    const unhov = () => { if (hov) { try { hov.style.outline = hovPrev; } catch (e) { } hov = null; } };
+    uied.offs.push(unhov);
+    on('mouseover', e => { if (exempt(e.target) || pass(e.target)) return unhov(); unhov(); const el = uiedGuard(e.target, doc); if (el && el !== uied.sel) { hov = el; hovPrev = el.style.outline; el.style.outline = '1px dashed #B5FF00'; } });
+    on('click', e => {
+      if (exempt(e.target)) return;
+      if (pass(e.target)) { // 放行的真操作: 连击停 1.2s 自动取消选中(每个手势都严格+1击; 焦点还在选中元素内=正在打字, 不取消)
+        clearTimeout(uied.disarmT);
+        uied.disarmT = setTimeout(() => { try { if (uied && uied.sel && !uied.sel.contains(uied.sel.ownerDocument.activeElement)) uiedSelect(null); } catch (e2) { } }, 1200);
+        return;
+      }
+      e.preventDefault(); e.stopPropagation(); unhov(); closeWinMenus(); uiedSelect(uiedGuard(e.target, doc)); // 关菜单: 拦截击停掉了冒泡, 菜单的"点外关闭"永远收不到, 这里代劳
+    });
+    on('dblclick', e => { if (exempt(e.target)) return; if (!pass(e.target) || Date.now() - uied.selAt < 550) { e.preventDefault(); e.stopPropagation(); } }); // 严格加一击: 构成双击的两击必须都是放行击(选中那击不算) — 原双击=先选中, 再双击
+    on('mousedown', e => { if (exempt(e.target) || pass(e.target)) return; e.preventDefault(); e.stopPropagation(); }); // mousedown 驱动的控件不得被"选中那一击"触发(泄漏实锤)
+    on('mouseup', e => { if (exempt(e.target) || pass(e.target)) return; e.stopPropagation(); });
+    on('pointerdown', e => { if (exempt(e.target) || pass(e.target)) return; e.stopPropagation(); const el = uiedGuard(e.target, doc); if (!el) return;
+      lpAt = [e.clientX, e.clientY]; clearTimeout(lp); lp = setTimeout(() => { lp = null; uiedSelect(el); uiedSend(el); }, 550); });
+    on('pointermove', e => { if (lp && lpAt && Math.abs(e.clientX - lpAt[0]) + Math.abs(e.clientY - lpAt[1]) > 8) { clearTimeout(lp); lp = null; } });
+    on('pointerup', e => { clearTimeout(lp); lp = null; if (exempt(e.target) || pass(e.target)) return; e.stopPropagation(); });
+    on('pointercancel', () => { clearTimeout(lp); lp = null; });
+    on('contextmenu', e => { if (exempt(e.target) || pass(e.target)) return; e.preventDefault(); e.stopPropagation(); });
+    on('keydown', e => {
+      if (exempt(e.target)) return;
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); if (uied.sel) uiedSelect(null); else $('uied-close').click(); }
+      else if (e.key === 'Enter' && uied.selEdit && pass(e.target)) { e.preventDefault(); e.stopPropagation(); uiedSelect(null); } // 原地改字: 回车=提交
+    });
+  }
+  function uiedGuard(t, doc) {
+    if (!t || t.nodeType !== 1) return null;
+    if (t.tagName === 'IFRAME') { if (doc === document) uiedTryFrame(t); return null; } // 帧壳: 宿主层尝试解锁/补绑; 帧内嵌帧不进(嵌套层级止步于一层)
+    return okEl(t, doc);
+  }
+  function uiedTryFrame(fe) { // 点到帧壳: 可及未绑→补绑; 隔离帧→临时解锁; 其他→如实
+    let doc = null; try { doc = fe.contentDocument; } catch (e) { }
+    if (doc && doc.body) { if (!uied.frames.some(f => f.doc === doc)) uiedScanFrames(); return toast('点应用/窗里的元素即可选中'); }
+    uiedLift(fe);
+  }
+  function uiedLift(fe) { // 编辑即临时解锁(所有隔离 srcdoc 沙箱帧同一条路): sandbox 暂加同源后重载(桥的通道号烤在文档里, 重载自动重握手), 退出逐帧还原; 绝不动 trust, 也不升 SDK 权限(登记表 trusted 不变)
+    const sb = fe.getAttribute('sandbox');
+    if (!fe.srcdoc || sb == null || /allow-same-origin/.test(sb)) return toast('这个窗口进不去 — 📮 发给 agent 代改');
+    if (uied.liftedFrames.some(r => r.el === fe)) return;
+    uied.liftedFrames.push({ el: fe, sandbox: sb });
+    fe.setAttribute('sandbox', sb + ' allow-same-origin');
+    fe.srcdoc = fe.srcdoc; // sandbox 只在装载时生效, 重载让新权限落地; 就绪后由轮询自动绑上
+    toast('已临时解锁此窗口以便编辑, 退出后自动恢复');
+  }
+  async function uiedScanFrames() { // 宿主里一切可及同源帧: 绑手+记归属。编辑期间轮询驱动(见 openUiEditor), 未就绪/新开/重载的帧下轮自然捡到 — 单机制, 无竞态面
+    if (!uied) return;
+    for (const fe of document.querySelectorAll('iframe')) {
+      if (uied.scope && !(runnerAppId === uied.scope && fe.closest('#runner-body'))) continue; // 应用作用域: 只认自家 runner 帧
+      let doc = null; try { doc = fe.contentDocument; } catch (e) { }
+      if (!doc || !doc.body || !doc.body.children.length) continue;
+      if (uied.frames.some(f => f.doc === doc)) continue; // 按 doc 认(帧内真导航换文档=当新帧重绑; 旧文档的监听随文档消亡)
+      const stale = uied.frames.findIndex(f => f.el === fe); if (stale >= 0) uied.frames.splice(stale, 1);
+      const appId = (fe.closest('#runner-body') && runnerAppId) ? runnerAppId : null;
+      uied.frames.push({ el: fe, doc, appId });
+      if (appId && !uied.appRec[appId]) {
+        try { uied.appRec[appId] = await apps().get(appId); const ex = doc.getElementById('petri-ui-edits'); if (ex && !uied.appEdits[appId]) uied.appEdits[appId] = parseOv(ex.textContent); } catch (e) { }
+      }
+      uiedBindDoc(doc);
+    }
+  }
+  function uiedInit() {
+    if (uiedHud) return;
+    uiedHud = document.createElement('div'); uiedHud.className = 'uied-hud';
+    uiedHud.innerHTML = '<h4 id="uied-title"></h4><div><button id="uied-count" title="查看/撤销样式改动"></button><button id="uied-restore"></button><button id="uied-save">💾 保存</button><button id="uied-close">✕</button></div><div id="uied-side"></div>';
+    ctx.root.appendChild(uiedHud);
+    const h4 = uiedHud.querySelector('h4'); h4.style.cssText = 'cursor:move;user-select:none'; // 面板可拖(标题栏): 挡住目标元素时挪开
+    h4.onpointerdown = e => {
+      const r = uiedHud.getBoundingClientRect(), dx = e.clientX - r.left, dy = e.clientY - r.top;
+      try { h4.setPointerCapture(e.pointerId); } catch (e2) { }
+      h4.onpointermove = e2 => { uiedHud.style.right = 'auto'; uiedHud.style.left = Math.max(0, Math.min(innerWidth - 80, e2.clientX - dx)) + 'px'; uiedHud.style.top = Math.max(0, Math.min(innerHeight - 40, e2.clientY - dy)) + 'px'; };
+      h4.onpointerup = () => { h4.onpointermove = h4.onpointerup = null; };
+    };
+    $('uied-close').onclick = () => { if (uied && uied.dirty && !confirm('有未保存的改动, 直接退出?')) return; uiedExit(false); };
+    $('uied-save').onclick = uiedSave;
+    $('uied-restore').onclick = uiedRestore;
+    $('uied-count').onclick = () => {
+      const rows = [];
+      for (const s of Object.keys(uied.edits)) if (Object.keys(uied.edits[s]).length) rows.push({ st: uied.edits, s, tag: s });
+      for (const a of Object.keys(uied.appEdits)) for (const s of Object.keys(uied.appEdits[a])) if (Object.keys(uied.appEdits[a][s]).length) rows.push({ st: uied.appEdits[a], s, tag: '[' + a + '] ' + s });
+      const o = mkModal('<h2>改动清单</h2>' + (rows.length ? rows.map((r, i) => '<div style="display:flex;gap:8px;align-items:center;margin:6px 0"><code class="uied-tag" style="flex:1">' + esc(r.tag + '{' + Object.entries(r.st[r.s]).map(kv => kv[0] + ':' + kv[1]).join(';') + '}') + '</code><button class="ad-btn-ghost" data-i="' + i + '">删除</button></div>').join('') : '<p class="uied-hint">还没有样式改动。</p>')
+        + '<p class="uied-hint">文字改动 ' + uied.texts.length + ' 处: ' + esc(uied.texts.map(t => t.tgtLabel || (t.tgt.kind + ':' + t.tgt.id)).join('、') || '无') + '</p>', true);
+      o.classList.add('uied-x'); // 编辑器自己的弹窗豁免点选拦截, 按钮可用
+      o.querySelectorAll('[data-i]').forEach(b => b.onclick = () => { const r = rows[+b.dataset.i]; delete r.st[r.s]; uiedLive(); if (uied.sel) uiedSide(uied.sel); o.remove(); });
+    };
+  }
+  async function openUiEditor(scope) { // 唯一编辑模式: 无参=全局(宿主+一切可及帧, 桌面右键) / scope=应用id(runner ✎)=只编辑该应用, 其余体验全同; 独立态同样可用(各路诚实降级)
+    uiedInit(); closeStartMenu(); if (uied) uiedExit(true);
+    uied = { scope: scope || null, edits: JSON.parse(JSON.stringify((await ctx.kv.get(SKIN_KEY)) || {})), appEdits: {}, appRec: {}, texts: [], frames: [], sel: null, selPrev: '', selText: '', selEdit: false, selSync: null, selAt: 0, dirty: false, offs: [], liftedFrames: [] };
+    document.body.classList.add('uied-on');
+    $('uied-title').textContent = scope ? '✎ 编辑 · ' + ((((await apps().get(scope)) || {}).name) || scope) : '✎ 点选编辑';
+    $('uied-restore').textContent = '⌫ 清空样式改动'; $('uied-restore').style.display = scope ? 'none' : '';
+    if (scope) { const onEsc = e => { if (e.key === 'Escape' && !(uiedHud && uiedHud.contains(e.target))) { e.preventDefault(); if (uied.sel) uiedSelect(null); else $('uied-close').click(); } }; document.addEventListener('keydown', onEsc, true); uied.offs.push(() => document.removeEventListener('keydown', onEsc, true)); } // 作用域模式: 宿主不拦截只留 Esc
+    else uiedBindDoc(document);
+    const poll = setInterval(uiedScanFrames, 450); uied.offs.push(() => clearInterval(poll)); // 编辑期间轮询补绑帧(新开/重载/解锁后就绪的都靠它)
+    await uiedScanFrames();
+    uiedLive(); uied.dirty = false; uiedBar(); uiedSelect(null);
+  }
+  function uiedExit(saved) {
+    if (!uied) return;
+    const U = uied;
+    uiedSelect(null); U.offs.forEach(f => { try { f(); } catch (e) { } }); clearTimeout(U.disarmT);
+    if (!saved) U.texts.slice().reverse().forEach(t => { try { t.el.textContent = t.oldText; } catch (e) { } }); // 倒序回滚未保存的文字(宿主/帧同享)
+    for (const fr of U.frames) { // 帧内覆盖层归位: 回到已存源码状态(保存过=最新, 放弃=原样)
+      if (!fr.appId) continue;
+      try { const st = fr.doc.getElementById('petri-ui-edits'); if (st) { const m = U.appRec[fr.appId]; st.textContent = ((ED_RE.exec((m && m.code) || '') || [])[1] || ''); } } catch (e) { }
+    }
+    applySkin(); // 皮肤单层: 从 kv 重渲染, 未保存的样式预览自然消失
+    document.body.classList.remove('uied-on');
+    uied = null;
+    let n = 0; for (const r of U.liftedFrames) { try { if (r.el.isConnected) { r.el.setAttribute('sandbox', r.sandbox); r.el.srcdoc = r.el.srcdoc; n++; } } catch (e) { } } // 临时解锁的帧: sandbox 逐字节还原+重载
+    if (n) toast('编辑时解锁的窗口已恢复隔离');
+  }
+  async function uiedSave() {
+    if (!uied) return;
+    uiedSelect(null); // 先路过提交点: 原地改字未落笔的一并收进 texts
+    const skin = {}; for (const s of Object.keys(uied.edits)) if (Object.keys(uied.edits[s]).length) skin[s] = uied.edits[s];
+    await ctx.kv.set(SKIN_KEY, skin); // 皮肤真身入 kv(#ui-skin 编辑期保持空, live 层继续预览, 退出时还原)
+    const jobs = {};
+    for (const t of uied.texts) { const k = t.tgt.kind + ':' + t.tgt.id; (jobs[k] = jobs[k] || { tgt: t.tgt, texts: [] }).texts.push(t); }
+    for (const aid of Object.keys(uied.appEdits)) { const k = 'app:' + aid; jobs[k] = jobs[k] || { tgt: { kind: 'app', id: aid }, texts: [] }; }
+    const blocks = Object.values(jobs).filter(j => j.tgt.kind === 'block');
+    if (blocks.length && !confirm('文字改动会写进块源码并重启该块: ' + blocks.map(j => j.tgt.id).join(', ')
+      + (blocks.some(j => j.tgt.id === 'petri:agent') ? '\n(注意: agent 重启会清掉当前对话)' : '') + (blocks.some(j => j.tgt.id === ctx.id) ? '\n(含本界面: 保存后整页重载)' : '') + '\n继续?')) return toast('样式已保存; 文字改动还没写入(可继续编辑或 ✕ 放弃)');
+    let selfCode = null; const done = [];
+    for (const j of Object.values(jobs)) {
+      if (j.tgt.kind === 'app') { // 应用: 文字字面 + 样式覆盖层一起落源码; orig 首存一次
+        const id = j.tgt.id, rec = await apps().get(id); if (!rec) { toast('应用 ' + id + ' 不在了, 跳过'); continue; }
+        let src = j.texts.reduce((z, t) => z.split(t.needle).join(t.repl), rec.code || '');
+        const css = skinCss(uied.appEdits[id] || {}), blockCss = css ? '<style id="petri-ui-edits">\n' + css + '\n</style>' : '';
+        src = ED_RE.test(src) ? src.replace(ED_RE, () => blockCss)
+          : (!blockCss ? src : (/<\/head>/i.test(src) ? src.replace(/<\/head>/i, mm => blockCss + '\n' + mm) : /<\/body>/i.test(src) ? src.replace(/<\/body>/i, mm => blockCss + '\n' + mm) : src + '\n' + blockCss));
+        await apps().update(id, { code: src, orig: rec.orig || rec.code });
+        try { uied.appRec[id] = await apps().get(id); } catch (e) { }
+        done.push('应用 ' + (rec.name || id));
+      } else { // 块(含块窗文字): 统一写路径 — code 在岗带解析对齐, 否则直存热替换; 本块自改=最后存+整页重载
+        const bid = j.tgt.id, b = ctx.stem.getBlock(bid); if (!b) { toast('块 ' + bid + ' 不见了, 跳过'); continue; }
+        let code = b.code; for (const t of j.texts) code = code.split(t.needle).join(t.repl);
+        if (bid === ctx.id) { selfCode = code; continue; }
+        try {
+          const h = ctx.sdk && ctx.sdk.handlers && ctx.sdk.handlers['code.updateMiniapp'];
+          if (h && !h.stream) await (typeof h === 'function' ? h : h.fn)({ id: 'block:' + bid, patch: { code } }, { context: {} });
+          else { await ctx.stem.saveBlock(bid, code); ctx.emit('blocks:changed'); }
+          done.push('块 ' + bid);
+        } catch (e) { toast('块 ' + bid + ' 未写入: ' + (e && e.message)); } // 独立态 saveBlock 如实拒绝/任何写失败: 不中断其余保存
+      }
+    }
+    uied.texts = []; uied.dirty = false; uiedBar();
+    if (selfCode != null) { toast('保存中, 本界面源码已改, 整页重载…'); return ctx.stem.saveBlock(ctx.id, selfCode).then(() => location.reload()).catch(e => toast('本界面保存失败: ' + (e && e.message))); }
+    toast('已保存: 样式 ' + Object.keys(skin).length + ' 条' + (done.length ? ' + ' + done.join('、') : ''));
+  }
+  async function uiedRestore() {
+    if (!uied) return;
+    if (!confirm('清空所有改过的样式(颜色/字号等)? 文字类改动不受影响。')) return;
+    await ctx.kv.del(SKIN_KEY); uied.edits = {}; uiedLive(); uied.dirty = false; uiedBar(); if (uied.sel) uiedSide(uied.sel);
+    toast('样式改动已清空');
+  }
+  if (ctx.kv) ctx.kv.get('skill:petri:ui-shell:机制-点选编辑与全局皮肤').then(v => { const val = { v: 5, seededBy: 'petri:ui-shell',
+    desc: '用户提到点选编辑/改界面样式/皮肤, 或对话里出现[界面元素]卡片时读',
+    guide: '入口两个, 同一编辑器: 桌面右键 ✎ 编辑界面=全局(宿主+一切帧, 点到隔离帧临时解锁, 退出恢复, 绝不落 trust) / 运行中应用顶栏 ✎ 编辑=只限该应用。加一击: 第一击选中, 已选中再点=原本功能(双击类=先选中再双击; 放行连击停 1.2s 自动取消选中)。文字元素选中即可原地打字或用面板文字框(双向同步), 回车/换选提交。改动归宿: 宿主样式→write kv:settings:ui.skin, 值必须是对象 {"#选择器":{"css属性":"值"}}(不是 CSS 文本!), 再 run call:ui.applySkin 立即生效; 应用样式/文字→应用源码(petri-ui-edits 覆盖层/字面, orig 首存); 块与块自带窗的文字→块源码字面(edit block:<id>); 块自带窗样式→改该块源码。独立态(单文件)同样可编辑: 皮肤落本地存储, 源码类保存如实拒绝。[界面元素]卡片(长按未选中元素/📮发来)只含事实: 选择器/归属/文字/盒模型 — 怎么改按上面归宿选通道; 看/点该元素用 runtime.snapshot/click({id:"host"} 或 {id:"<miniappId>"}) 配卡片选择器。' };
+    if (!v || v.v !== val.v) ctx.kv.set('skill:petri:ui-shell:机制-点选编辑与全局皮肤', val); }).catch(() => { }); // 知识随块: 编辑器与皮肤的说明书由本块自种(值形状示例原随卡片指南, 卡片瘦身后归此 — R1 实测缺了就写错)
+
+  applyWallpaper();
+  renderApps();
+  renderTiles();
+  return { api: { openRunner, openBlockPage }, dispose() { try { uiedExit(true); } catch (e) { } closeRunner(); if (typeof voxDispose === 'function') voxDispose(); } }; // 编辑模式的 document 级捕获监听必须随块退场, 否则热重启后旧监听吃掉整页点击
+})
+</script>
+<script data-stem-shim="1">(function(){
+var SCR="scr"+"ipt";
+var re=new RegExp("<"+SCR+"\\s+type=\"colony/petri\"[^>]*>([\\s\\S]*?)</"+SCR+">");
+var m=re.exec(document.documentElement.outerHTML); if(!m){document.body.textContent="未找到块";return;}
+var hd=/\/\*BLOCK\*\/([\s\S]*?)\/\*CODE\*\//.exec(m[1]);
+var man=JSON.parse(hd[1].trim()); var code=m[1].slice(hd.index+hd[0].length);
+var pre="petri.solo."+man.id+":";
+var root=document.createElement("div"); root.setAttribute("data-block-id",man.id); document.body.appendChild(root);
+
+var ctx={ id:man.id, root:root,
+ css:function(t){var s=document.createElement("style");s.textContent=t;document.head.appendChild(s);},
+ listen:function(t,e,f){t.addEventListener(e,f);}, timer:function(f,ms,rep){return rep?setInterval(f,ms):setTimeout(f,
+ms);},
+ store:{ get:async function(k){var v=localStorage.getItem(pre+k);return v==null?undefined:JSON.parse(v);}, set:async function(k,
+v){localStorage.setItem(pre+k,JSON.stringify(v));}, del:async function(k){localStorage.removeItem(pre+k);}, list:async function(p){var o=[];
+for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key.indexOf(pre+(p||""))===0)o.push({key:key.slice(pre.length),
+value:JSON.parse(localStorage.getItem(key))});}return o;} },
+ kv:{ get:async function(k){var v=localStorage.getItem(pre+"kv:"+k);return v==null?undefined:JSON.parse(v);}, set:async function(k,
+v){localStorage.setItem(pre+"kv:"+k,JSON.stringify(v));}, del:async function(k){localStorage.removeItem(pre+"kv:"+k);
+}, list:async function(p){var o=[];for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key.indexOf(pre+"kv:"+(p||""))===0)o.push({key:key.slice((pre+"kv:").length),
+value:JSON.parse(localStorage.getItem(key))});}return o;} },
+ service:function(){return null;}, provide:function(){}, call:function(){throw new Error("独立模式无他块");},
+ on:function(){}, emit:function(){},
+ stem:{ hash:"solo", lineage:{gen:"独立"},
+  listBlocks:function(){return [{id:man.id,name:man.name,version:man.version,category:man.category,dirty:false,disabled:false}];
+},
+  getBlock:function(id){return id===man.id?{manifest:man,code:code,dirty:false}:null;},
+  readSource:function(){return document.documentElement.outerHTML;},
+  saveBlock:function(){return Promise.reject(new Error("独立模式只读, 导入回 Colony 后可改"));},
+  restoreFactory:function(){return Promise.resolve();}, setEnabled:function(){return Promise.resolve();},
+  molt:function(){throw new Error("独立 Petri 无新生能力, 导入回 Colony");}, wrapBlock:function(){},
+  unwrap:function(){return [];},
+  download:function(n,c){var u=URL.createObjectURL(new Blob([c],{type:"text/html;charset=utf-8"}));var a=document.createElement("a");
+a.href=u;a.download=n;document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u);
+},100);} },
+ runtime:null, sdk:{handle:function(){},handleStream:function(){}} };
+document.title=(man.name||man.id)+" · Colony Petri";
+try{ (0,eval)(code)(ctx); }catch(e){ root.textContent="块启动失败: "+e.message; }
+})();</script>
+</body>
+</html>

@@ -1,0 +1,2277 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>全能 agent</title>
+<style>
+:root{color-scheme:dark;
+--bg:#0a0a0a;
+--bg-2:#131313;
+--bg-3:#1a1a1a;
+--surface:rgba(255,255,255,.035);
+--surface-hover:rgba(255,255,255,.065);
+--border:rgba(255,255,255,.08);
+--border-strong:rgba(255,255,255,.18);
+--text:#fafafa;
+--text-muted:#8a8a8a;
+--text-dim:#555;
+--accent:#B5FF00;
+--accent-soft:rgba(181,255,0,.12);
+--warn:#FF9500;
+--danger:#FF4444;
+--radius:12px;
+--radius-lg:18px;
+--mono:ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+--sans:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+--serif:"Fraunces",Georgia,serif}
+body{background:var(--bg);
+color:var(--text);
+font-family:var(--sans);
+margin:0}
+input,select,textarea,button{font-family:inherit}
+.cl-brand{font-family:var(--serif);
+font-style:italic;
+font-weight:700;
+letter-spacing:.4px}
+.cl-btn{background:var(--surface);
+border:1px solid var(--border-strong);
+color:var(--text);
+border-radius:8px;
+padding:6px 12px;
+font-size:12px;
+cursor:pointer}
+.cl-btn:hover{border-color:var(--accent);
+color:var(--accent)}
+.cl-btn-primary{background:var(--accent);
+border:0;
+color:#000;
+border-radius:8px;
+padding:6px 14px;
+font-size:12px;
+font-weight:600;
+cursor:pointer}
+.cl-input{background:var(--bg-2);
+border:1px solid var(--border);
+color:var(--text);
+border-radius:8px;
+padding:7px 10px;
+font-size:13px;
+box-sizing:border-box}
+.cl-card{background:var(--bg-2);
+border:1px solid var(--border);
+border-radius:var(--radius);
+padding:14px}
+.petri-masthead{display:flex;
+align-items:baseline;
+gap:12px;
+padding:14px 18px;
+border-bottom:1px solid var(--border)}
+.petri-masthead .cl-brand{font-size:18px;
+color:var(--accent)}
+.pm-name{font-size:14px;
+font-weight:600}
+.pm-lineage{margin-left:auto;
+font-size:11px;
+color:var(--text-muted)}
+.settings-hint{font-size:11px;
+color:var(--text-muted);
+line-height:1.6}
+body[data-wrapper] [data-block-id]{padding:18px}
+</style>
+</head>
+<body data-wrapper="v1">
+<div class="petri-masthead"><span class="cl-brand">Colony</span><span class="pm-name">全能 agent</span><span class="pm-lineage">源自 Colony 第1代 · Stem 14121d04</span></div>
+<!--COLONY-PETRI {"wrapper":"v1","blockId":"petri:agent","version":2,"codeHash":"75c5abc5","parentStemHash":"14121d04","at":"2026-07-03T12:02:28.112Z"}-->
+<script type="colony/petri" data-id="petri:agent">
+/*BLOCK*/{"id":"petri:agent","name":"全能 agent","version":2,"after":["petri:ui-shell","petri:ai"],"requires":["llm","ui","apps"],"provides":["agent"],"category":"feature","degrade":"llm 服务缺失时用内嵌 LLMLite 兜底(大脑区 ⚙ 配置); 均未配置则如实提示","sdk":["runtime.listFrames","runtime.invoke","runtime.snapshot","runtime.click","runtime.input","runtime.key","runtime.eval","runtime.waitFor","runtime.screenshot","runtime.getShot","trace.query","agent.loop"],"sdkConditional":["ai.chat","ai.chatStream"]}/*CODE*/
+(function (ctx) {
+  /* 数据自报: 本块 kv 归属 → 次元口袋按归属聚合(MAP 进 kv 后并入此声明) */
+  if (ctx.kv) ctx.kv.set('datamap:petri:agent', {
+    owner: 'petri:agent', label: '全能 agent', icon: '🤖',
+    ns: [{ prefix: 'skill:petri:agent:', label: '最佳实践技能', kind: 'seed' },
+      { prefix: 'map:petri:agent', label: '系统提示词 (MAP)', kind: 'seed' },
+      { prefix: 'chat.', label: '会话记录', kind: 'user' },
+      { prefix: 'chatasset:', label: '对话素材(附件归档)', media: true, kind: 'user', shape: '{dataUrl|text, mimeType, name}' },
+      { prefix: 'media:', label: '生成素材(能力产物)', media: true, kind: 'user', shape: '{dataUrl, mimeType, from, note?}' },
+      { prefix: 'task:', label: '执行台账', kind: 'user' },
+      { prefix: 'settings:agent.', label: '记忆/运行配置', kind: 'config' },
+      { prefix: 'agent.brain', label: '模型配置', kind: 'config' },
+      { prefix: 'settings:llmlite', label: 'AI 兜底配置 (LLMLite)', kind: 'config' },
+      { prefix: 'fabSpeech', label: '播报开关', kind: 'config' },
+      { prefix: 'dock.prefs', label: '停靠栏偏好', kind: 'config' },
+      { prefix: 'runtimeshot:', label: '运行时截图缓存(眼手)', media: true, kind: 'cache' },
+      { prefix: 'voice.prefs', label: '语音偏好 (STT/TTS)', kind: 'config' }] }).catch(() => { });
+  ctx.css("/* ───────────────────────── Agent dock ───────────────────────── */\n.agent-dock {\n  position: fixed;\n  background: var(--bg-2);" +
+    "\n  z-index: 130; /* 顶层常驻: 高于 runner(50)/工作流(90)/解读页(110)/源码管理(120) — IDE 级精准协作, 任何界面里气泡都在 */\n  display: flex;" +
+    "\n  flex-direction: column;\n  box-shadow: 0 -2px 20px rgba(0,0,0,.3);\n}\n/* 折叠态: 极简圆形聊天气泡 (对齐原版 fab, 干净) */\n.agent-dock.collapsed {\n  width: 52px;" +
+    " height: 52px;\n  border-radius: 50%;\n  border: 1px solid var(--border-strong);\n  cursor: grab;\n  bottom: 24px;" +
+    " right: 24px;\n  left: auto; top: auto;\n  background: rgba(0,0,0,0.72);\n  backdrop-filter: blur(14px);\n  -webkit-backdrop-filter: blur(14px);" +
+    "\n  box-shadow: 0 4px 16px rgba(0,0,0,.4);\n  transition: transform .15s;\n  align-items: center;\n  justify-content: center;" +
+    "\n}\n.agent-dock.collapsed:hover { transform: scale(1.08); border-color: var(--accent); }\n.agent-dock.collapsed.dragging { cursor: grabbing;" +
+    " transition: none; }\n.agent-dock.collapsed .dock-fab-icon { display: flex; font-size: 22px; align-items: center;" +
+    " justify-content: center; }\n.agent-dock.collapsed .agent-dock-bar,\n.agent-dock.collapsed .session-bar,\n.agent-dock.collapsed .chat-members,\n.agent-dock.collapsed .brain-selector,\n.agent-dock.collapsed .agent-conversation,\n.agent-dock.collapsed " +
+      ".agent-input-row,\n.agent-dock.collapsed .dock-resize-handle { display: none;" +
+    " }\n/* 展开态隐藏气泡图标 */\n.dock-fab-icon { display: none; }\n.agent-dock.expanded .dock-fab-icon { display: none;" +
+    " }\n/* 展开态工具按钮 */\n.dock-tool {\n  background: transparent; border: none;\n  color: var(--text-muted); cursor: pointer;" +
+    "\n  font-size: 14px; padding: 2px 6px; opacity: .6;\n}\n.dock-tool:hover { opacity: 1; }\n.dock-tool.toggle { font-size: 16px;" +
+    " }\n\n/* 展开态 - 停靠底部 (默认) */\n.agent-dock.expanded.dock-bottom {\n  bottom: 0; left: 0; right: 0; top: auto;" +
+    "\n  height: var(--dock-height, 480px);\n  border-top: 1px solid var(--border);\n  border-radius: 0;\n}\n/* 展开态 - 停靠右边 */\n.agent-dock.expanded.dock-right {\n  top: 0;" +
+    " bottom: 0; right: 0; left: auto;\n  width: var(--dock-width, 420px);\n  height: auto;\n  border-left: 1px solid var(--border);" +
+    "\n  border-radius: 0;\n}\n.agent-dock-bar {\n  display: flex;\n  align-items: center;\n  gap: 12px;\n  padding: 10px 20px;" +
+    "\n  flex-shrink: 0;\n  cursor: pointer;\n}\n/* resize 手柄: 底部态在顶边(纵向), 右边态在左边(横向) */\n.dock-resize-handle {\n  position: absolute;" +
+    "\n  z-index: 41;\n}\n.dock-bottom .dock-resize-handle {\n  top: -3px; left: 0; right: 0; height: 8px; cursor: ns-resize;" +
+    "\n}\n.dock-right .dock-resize-handle {\n  left: -3px; top: 0; bottom: 0; width: 8px; height: auto; cursor: ew-resize;" +
+    "\n}\n.dock-resize-handle::after {\n  content: '';\n  position: absolute;\n  background: var(--border-strong);" +
+    "\n  border-radius: 2px;\n}\n.dock-bottom .dock-resize-handle::after {\n  top: 3px; left: 50%; transform: translateX(-50%);" +
+    " width: 40px; height: 3px;\n}\n.dock-right .dock-resize-handle::after {\n  left: 3px; top: 50%; transform: translateY(-50%);" +
+    " height: 40px; width: 3px;\n}\n.agent-dock.collapsed .dock-resize-handle { display: none; }\n.agent-dock-bar .ai-icon {\n  width: 28px;" +
+    " height: 28px;\n  background: var(--accent);\n  color: #000;\n  border-radius: 50%;\n  display: flex;\n  align-items: center;" +
+    "\n  justify-content: center;\n  font-weight: bold;\n  font-size: 13px;\n}\n.agent-dock-bar .title {\n  flex: 1;" +
+    "\n  font-size: 13px;\n  font-weight: 500;\n}\n.agent-conversation {\n  flex: 1;\n  overflow-y: auto;\n  padding: 16px 20px;" +
+    "\n  display: flex;\n  flex-direction: column;\n  gap: 12px;\n}\n.agent-msg {\n  max-width: 80%;\n  padding: 10px 14px;" +
+    "\n  border-radius: 14px;\n  font-size: 13px;\n  line-height: 1.55;\n  white-space: pre-wrap;\n  word-wrap: break-word;" +
+    "\n}\n.agent-msg.user {\n  align-self: flex-end;\n  background: var(--accent);\n  color: #000;\n}\n.agent-msg.assistant {\n  align-self: flex-start;" +
+    "\n  background: var(--surface);\n  border: 1px solid var(--border);\n}\n.agent-input-row {\n  display: flex;\n  gap: 10px;\n  padding: 12px 20px;\n  border-top: 1px solid var(--border);" +
+    "\n  flex-shrink: 0;\n}\n.agent-input-row textarea {\n  flex: 1;\n  background: var(--bg);\n  border: 1px solid var(--border);" +
+    "\n  color: var(--text);\n  padding: 8px 12px;\n  border-radius: 8px;\n  resize: none;\n  min-height: 36px;" +
+    "\n  max-height: 100px;\n  font-size: 13px;\n}\n.agent-input-row button {\n  background: var(--accent);\n  color: #000;" +
+    "\n  border: none;\n  padding: 8px 20px;\n  border-radius: 8px;\n  cursor: pointer;\n  font-weight: 600;\n  font-size: 13px;" +
+    "\n}\n.agent-input-row button:disabled { opacity: .5; cursor: not-allowed; }\n/* 多模态输入: io 按钮(附件/语音) — 中性色, 区别于发送 */\n.agent-input-row .agent-io-btn { background: var(--surface);" +
+    " color: var(--text); padding: 8px 10px; font-size: 16px; flex-shrink: 0; }\n.agent-input-row .agent-io-btn:hover { background: var(--surface-hover);" +
+    " }\n.agent-input-row .agent-io-btn.recording { background: #ff4444; color: #fff; animation: rec-pulse 1s infinite;" +
+    " }\n@keyframes rec-pulse { 0%,100% { opacity: 1; } 50% { opacity: .5; } }\n/* 附件预览条 */\n.agent-attachments { display: flex;" +
+    " flex-wrap: wrap; gap: 8px; padding: 8px 20px 0; }\n.att-chip { display: flex; align-items: center; gap: 6px;" +
+    " background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 4px 8px; font-size: 11px;" +
+    " max-width: 180px; }\n.att-chip.att-coderef { background: var(--accent-soft); border-color: rgba(181,255,0,.3);" +
+    " max-width: 240px; }\n.att-chip.att-coderef .att-icon { color: var(--accent); font-family: var(--mono); }\n.att-chip img { width: 28px;" +
+    " height: 28px; object-fit: cover; border-radius: 4px; }\n.att-chip .att-icon { font-size: 18px; }\n.att-chip .att-name { overflow: hidden;" +
+    " text-overflow: ellipsis; white-space: nowrap; color: var(--text-muted); }\n.att-chip .att-del { cursor: pointer;" +
+    " color: var(--text-muted); flex-shrink: 0; }\n.att-chip .att-del:hover { color: #ff6b6b; }\n/* 拖放高亮 */\n.agent-conversation.drag-over { outline: 2px dashed var(--accent);" +
+    " outline-offset: -6px; background: rgba(181,255,0,.04); }\n/* 消息朗读按钮 */\n.agent-msg { position: relative; }" +
+    "\n.msg-speak { position: absolute; bottom: 4px; right: 6px; cursor: pointer; font-size: 13px; opacity: .35;" +
+    " transition: opacity .15s, transform .15s; user-select: none; }\n.msg-speak:hover { opacity: .8; transform: scale(1.15);" +
+    " }\n/* 语音模型设置弹层 */\n.voice-settings-pop { position: absolute; top: 80px;" +
+    " left: 50%; transform: translateX(-50%); width: 320px; background: var(--bg-2); border: 1px solid var(--border);" +
+    " border-radius: 12px; padding: 16px; z-index: 50; box-shadow: 0 8px 32px rgba(0,0,0,.5); }\n.voice-settings-pop .vs-head { display: flex;" +
+    " justify-content: space-between; font-weight: 600; margin-bottom: 4px; }\n.voice-settings-pop .vs-close { cursor: pointer;" +
+    " color: var(--text-muted); }\n.voice-settings-pop .vs-hint { font-size: 11px; color: var(--text-muted); margin-bottom: 10px;" +
+    " }\n.voice-settings-pop .vs-label { display: block; font-size: 11px; color: var(--text-muted); margin: 10px 0 4px;" +
+    " }\n.voice-settings-pop select, .voice-settings-pop .vs-input { width: 100%; background: var(--surface); border: 1px solid var(--border);" +
+    " color: var(--text); padding: 7px 9px; border-radius: 6px; font-size: 12px; box-sizing: border-box; margin-bottom: 4px;" +
+    " }\n/* 下拉展开的选项也用深色(浏览器默认选项是白底, 显式指定) */\n.voice-settings-pop select option { background: var(--bg-2); color: var(--text);" +
+    " }\n.voice-settings-pop .vs-save { width: 100%; margin-top: 12px; background: var(--accent); color: #000; border: none;" +
+    " border-radius: 8px; padding: 9px; font-weight: 600; cursor: pointer; }\n/* 朗读总结: 直接接在消息气泡下方, 用不同颜色标识(不进对话上下文) */\n.msg-tts-summary { margin-top: 8px;" +
+    " padding: 8px 10px; border-left: 3px solid var(--accent); background: rgba(181,255,0,.06); border-radius: 0 8px 8px 0;" +
+    " font-size: 12px; line-height: 1.6; color: var(--text-muted); white-space: pre-wrap; }\n" + // dock 全套样式自带: 离开任何界面 Petri 也独立完整
+    '.fab-speech{position:absolute;bottom:62px;right:0;max-width:260px;background:var(--bg-2);border:1px solid var(--border-strong);' +
+    'border-radius:12px 12px 4px 12px;padding:7px 11px;font-size:12px;line-height:1.5;color:var(--text);box-shadow:0 6px 20px rgba(0,0,0,.45);' +
+    'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none;animation:fabpop .18s ease}@keyframes fabpop{from{opacity:0;' +
+    'transform:translateY(6px)}to{opacity:1;transform:none}}.agent-dock.expanded .fab-speech{display:none!important}' +
+    '.ctx-meter{margin-left:auto;font-size:10.5px;color:var(--text-muted);font-family:var(--mono);white-space:nowrap;' +
+    'align-self:center;padding-right:2px}.agent-chain{align-self:stretch;max-width:96%;border:1px solid var(--border);' +
+    'border-radius:10px;background:rgba(255,255,255,.02);font-size:11.5px;overflow:hidden}.chain-head{display:flex;' +
+    'gap:7px;align-items:center;padding:7px 11px;cursor:pointer;color:var(--text);user-select:none;font-weight:500}' +
+    '.chain-head .chain-ic{font-size:13px}.chain-head .chain-ttl{color:var(--text-muted)}.chain-head .chain-n{margin-left:auto;' +
+    'font-family:var(--mono);font-size:10.5px;color:var(--text-dim)}.chain-head .chain-tg{transition:transform .15s;' +
+    'color:var(--text-dim)}.agent-chain.open .chain-head .chain-tg{transform:rotate(180deg)}.agent-chain:not(.open) .chain-body{display:none}' +
+    '.chain-row{border-top:1px solid var(--border)}.cr-line{display:flex;gap:8px;align-items:center;padding:5px 10px;' +
+    'cursor:pointer}.cr-ic{width:9px;height:9px;border-radius:50%;flex-shrink:0}.chain-row.run .cr-ic{border:1.5px solid var(--text-dim);' +
+    'border-top-color:transparent;animation:crspin .7s linear infinite}.chain-row.ok .cr-ic{background:var(--accent)}' +
+    '.chain-row.err .cr-ic{background:#ff6b6b}.cr-t{color:var(--text)}.cr-meta{margin-left:auto;color:var(--text-dim);' +
+    'font-family:var(--mono);font-size:10.5px;max-width:46%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}' +
+    '.cr-d{padding:7px 12px;border-top:1px dashed var(--border);font-family:var(--mono);font-size:10.5px;color:var(--text-muted);' +
+    'white-space:pre-wrap;word-break:break-all;max-height:300px;overflow:auto}@keyframes crspin{to{transform:rotate(360deg)}' +
+    '}' + // 气泡播报+量表+可折叠行动轨迹
+    '.fab-steps{position:absolute;bottom:62px;right:0;width:248px;max-width:62vw;background:var(--bg-2);border:1px solid var(--border-strong);' +
+    'border-radius:12px 12px 4px 12px;padding:5px 9px;box-shadow:0 6px 20px rgba(0,0,0,.45);pointer-events:none;' +
+    'flex-direction:column;animation:fabpop .18s ease}.agent-dock.expanded .fab-steps{display:none!important}.fab-steps .chain-row{border-top:none}' +
+    '.fab-steps .cr-line{padding:3px 2px;cursor:default}.fab-steps .cr-t{overflow:hidden;text-overflow:ellipsis;' +
+    'white-space:nowrap}.chain-stop{background:none;border:none;color:#ff6b6b;cursor:pointer;font-size:12px;line-height:1;' +
+    'padding:0}.chain-stop:hover{transform:scale(1.18)}.chain-stop:disabled{opacity:.6;cursor:default}' + // 收起态步骤面板 + 工具链停止键
+    ".session-bar { display: flex; gap: 8px; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--border);" +
+    " position: relative; }\n.sess-current { display: flex; align-items: center; gap: 6px; background: var(--surface);" +
+    " border: 1px solid var(--border); color: var(--text); padding: 5px 12px; border-radius: 7px; font-size: 12px;" +
+    " font-weight: 500; cursor: pointer; }\n.sess-current:hover { background: var(--surface-hover); border-color: var(--border-strong);" +
+    " }\n.sess-caret { font-size: 9px; color: var(--text-muted); }\n.sess-new { background: none; border: 1px dashed var(--border);" +
+    " color: var(--text-muted); padding: 5px 10px; border-radius: 7px; font-size: 11px; cursor: pointer; }\n.sess-new:hover { color: var(--accent);" +
+    " border-color: var(--accent); }\n.sess-dropdown { position: absolute; top: 42px; left: 16px; min-width: 200px;" +
+    " max-height: 280px; overflow-y: auto; background: var(--bg-2); border: 1px solid var(--border-strong); border-radius: 10px;" +
+    " box-shadow: 0 12px 40px rgba(0,0,0,.5); z-index: 70; padding: 4px; }\n.sess-item { display: flex; align-items: center;" +
+    " justify-content: space-between; padding: 8px 10px; border-radius: 7px; cursor: pointer; font-size: 12px; color: var(--text-muted);" +
+    " }\n.sess-item:hover { background: var(--surface); color: var(--text); }\n.sess-item.active { background: var(--accent-soft);" +
+    " color: var(--accent); }\n.sess-item-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" +
+    " }\n.sess-item-acts { display: flex; gap: 2px; flex-shrink: 0; margin-left: 8px; }\n.sess-item-acts button { background: none;" +
+    " border: none; color: var(--text-dim); cursor: pointer; font-size: 11px; padding: 2px 5px; border-radius: 4px;" +
+    " }\n.sess-item-acts button:hover { color: var(--text); background: var(--surface-hover); }\n.chat-members { display: flex;" +
+    " gap: 6px; padding: 8px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; align-items: center;" +
+    " }\n.chat-member { display: inline-flex; align-items: center; gap: 5px; padding: 3px 10px; background: var(--surface);" +
+    " border: 1px solid var(--border); border-radius: 999px; font-size: 11px; color: var(--text-muted); }\n.chat-member .dot { width: 6px;" +
+    " height: 6px; border-radius: 50%; background: var(--accent); }\n.chat-member.builtin { color: var(--accent);" +
+    " border-color: rgba(181,255,0,.3); }\n.chat-member-add { border-style: dashed; cursor: pointer; }\n.chat-member-add:hover { color: var(--accent);" +
+    " border-color: var(--accent); }\n.brain-selector { display: flex; align-items: center; gap: 8px; padding: 6px 16px;" +
+    " border-bottom: 1px solid var(--border); font-size: 11px; color: var(--text-muted); }\n.brain-selector select { background: var(--bg);" +
+    " border: 1px solid var(--border); color: var(--text); border-radius: 8px; padding: 4px 8px; font-size: 11px;" +
+    " font-family: var(--mono); }\n.agent-step { display: flex; align-items: center; gap: 8px; padding: 6px 12px;" +
+    " margin: 4px 0; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; font-size: 12px;" +
+    " color: var(--text-muted); flex-wrap: wrap; }\n.step-spinner { width: 10px; height: 10px; border: 2px solid var(--border-strong);" +
+    " border-top-color: var(--accent); border-radius: 50%; animation: adspin .8s linear infinite; flex-shrink: 0;" +
+    " }\n.step-text { color: var(--text);" +
+    " }\n@keyframes adspin { to { transform: rotate(360deg);" +
+    " } }\n.agent-msg .msg-author { font-size: 10px; color: var(--text-dim); font-family: var(--mono); margin-bottom: 3px;" +
+    " }\n"); // 会话/成员/做事步骤样式
+  ctx.css('.agent-conversation>.agent-chain,.agent-conversation>.agent-msg{flex-shrink:0}'); // dock 定高 flex 列里多条链溢出会压扁子项+.agent-chain overflow:hidden 裁成细条(=无法展开); 锁 shrink:0 改为容器滚动
+  /* sys:agent — 全能 agent。dock 完整自带(气泡拖动/停靠/缩放/多会话/群聊成员/大脑选择/语音/附件/朗读/做事步骤);
+     执行引擎四原语 read/write/edit/run(target = 地址族 block/miniapp/kv + 能力面 call:<ns.method>; read "capabilities" 自发现, 新增能力不改本块);
+     事件流 turn-start/ctx/paint/final/error/turn-end(工具过程写入 trace, 经 renderTranscript 渲染工具链);
+     STT 用全模态模型, 麦克风一次授权终身复用。 */
+  const $ = id => ctx.root.querySelector('#' + id);
+  const esc = s => String(s == null ? '' : s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
+  const statusOf = t => t.status || (t.ok == null ? 'running' : t.ok ? 'done' : 'error');
+  const statusCls = t => { const s = statusOf(t); return s === 'running' ? 'run' : s === 'error' ? 'err' : 'ok'; };
+  /* ── LLMLite: 最低限度 AI 兜底 — openai 兼容 chat/chatStream, 三字段 endpoint/key/model 直连(无代理层)。
+     让位判定统一在下方 llm(): ai 在岗且有可用 provider 才让位, 否则 Lite 顶上。配置存全局 kv settings:llmlite
+     (colony 内各兜底块共享一份, 独立穿衣时 kv 是块自留地天然各管各)。语音/生图等高级能力不兜底 —— 诚实报错, 不装哑巴。 ── */
+  const Lite = (() => {
+    const KEY = 'settings:llmlite';
+    const cfg = async () => (await ctx.kv.get(KEY)) || {};
+    const need = async () => { const c = await cfg(); if (!c.endpoint || !c.key) throw new Error('未配置 AI provider: petri:ai 不在岗(或没配可用 provider)且 LLMLite 兜底未配置 — 大脑区点 ⚙ 填 endpoint/key/model, 或 write kv:settings:llmlite {"endpoint":"...","key":"...","model":"..."}'); return c; };
+    const teach = e => { if (e && e.name === 'AbortError') throw e; throw new Error('LLMLite 连不上 endpoint(' + (e && e.message) + '): 多为对方未开 CORS 或断网 — 兜底只做最基础直连, 请换一个支持浏览器跨域(CORS)的 endpoint(如 stepfun / ollama / lmstudio 等)'); };
+    const req = (c, body, signal) => fetch(c.endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + c.key }, body: JSON.stringify(body), signal }).catch(teach);
+    async function chat(a) {
+      a = a || {}; const c = await need();
+      const r = await req(c, Object.assign({ model: a.model || c.model, messages: a.messages }, a.tools ? { tools: a.tools } : {}, a.response_format ? { response_format: a.response_format } : {}, a.temperature != null ? { temperature: a.temperature } : {}), a.signal);
+      if (!r.ok) throw new Error('LLMLite HTTP ' + r.status + ': ' + (await r.text().catch(() => '')).slice(0, 200));
+      const j = await r.json(); const m = j.choices && j.choices[0] && j.choices[0].message;
+      if (!m) throw new Error('LLMLite: endpoint 回了 200 但不是聊天格式(无 choices[0].message) — 确认填的是 chat/completions 全 URL。回包头: ' + JSON.stringify(j).slice(0, 160));
+      return { content: m.content || '', tool_calls: m.tool_calls, raw: j };
+    }
+    async function* chatStream(a) {
+      a = a || {}; const c = await need();
+      const r = await req(c, Object.assign({ model: a.model || c.model, messages: a.messages, stream: true }, a.temperature != null ? { temperature: a.temperature } : {}), a.signal);
+      if (!r.ok) throw new Error('LLMLite HTTP ' + r.status + ': ' + (await r.text().catch(() => '')).slice(0, 200));
+      const rd = r.body.getReader(), dec = new TextDecoder(); let buf = '', got = false;
+      let idleT = null, idleHit = false; const arm = () => { clearTimeout(idleT); idleT = setTimeout(() => { idleHit = true; try { rd.cancel(); } catch (e) { } }, 90000); }; // 流式停滞90s主动断开防假死(删此看门狗=流卡死永不返回); 外部 signal 经 fetch 贯穿到 read()
+      try {
+        arm();
+        for (; ;) {
+          const { value, done } = await rd.read(); if (done) break;
+          arm(); buf += dec.decode(value, { stream: true });
+          let nl;
+          while ((nl = buf.indexOf('\n')) >= 0) {
+            const line = buf.slice(0, nl).replace(/\r$/, ''); buf = buf.slice(nl + 1);
+            if (!line.startsWith('data:')) continue;
+            const d = line.slice(5).trim(); if (!d || d === '[DONE]') continue;
+            try { const k = JSON.parse(d), dl = (k.choices && k.choices[0] && k.choices[0].delta) || {}; got = true; yield { delta: dl.content || '', reasoning: dl.reasoning_content || '' }; } catch (e) { }
+          }
+        }
+        if (idleHit) throw new Error('流式响应停滞(90s 无数据), 已主动断开; 可直接重试');
+        if (!got) throw new Error('LLMLite: 流式响应没有任何 SSE 数据行 — endpoint 可能不是 chat/completions 或不支持 stream。');
+      } finally { clearTimeout(idleT); try { rd.cancel(); } catch (e) { } }
+    }
+    async function models() { // 从 endpoint 派生 /models 拉真实列表(兼容 chat/completions|completions|messages 结尾)
+      const c = await need();
+      const mu = String(c.endpoint).replace(/\/(chat\/completions|completions|messages)(\?.*)?$/, '/models');
+      const r = await fetch(mu, { headers: { 'Authorization': 'Bearer ' + c.key } }).catch(teach);
+      if (!r.ok) throw new Error('拉取模型失败 HTTP ' + r.status + ': ' + (await r.text().catch(() => '')).slice(0, 120));
+      const j = await r.json(); const list = (j.data || j.models || []).map(m => m.id || m.name || m).filter(Boolean).sort();
+      if (!list.length) throw new Error('接口未返回任何模型');
+      return list;
+    }
+    const nope = what => () => Promise.reject(new Error('LLMLite 只兜底文本对话; ' + what + '需要 petri:ai 在岗'));
+    const facade = {
+      lite: true, chat, chatStream,
+      async getProviders() { const c = await cfg(); return (c.endpoint && c.key) ? [{ id: 'llmlite', name: 'LLMLite 兜底', protocol: 'openai-compatible', endpoint: c.endpoint, apiKey: c.key, model: c.model || '', models: c.model ? [c.model] : [] }] : []; },
+      generateAudio: nope('语音合成'), transcribeAudio: nope('语音转写'), generateImage: nope('生图'), generateVideo: nope('生视频'),
+    };
+    return { KEY, cfg, chat, chatStream, models, facade };
+  })();
+  /* llm(): 全块唯一的 AI 可用性判定(引擎/语音/大脑区/SDK 兜底同一判定):
+     petri:ai 在岗且有配了 key 的 provider → 让位给它; 否则(0 provider/不在岗/运行中禁用)→ Lite 门面。永不返回 null。 */
+  const llm = async () => {
+    const L = ctx.service('llm');
+    if (L && !L.lite) { try { if ((await L.getProviders()).some(p => p.apiKey)) return L; } catch (e) { } }
+    return Lite.facade;
+  };
+  const ui = () => ctx.service('ui'), apps = () => ctx.service('apps'), bridge = () => ctx.service('bridge');
+  /* ── ai.chat/chatStream 智能兜底(覆盖注册): code 解读/工作流模型节点/任意 miniapp 的 SDK AI 调用与引擎同一判定 ——
+     ai 可用则委托(带 fromMiniApp 走它的 allowMiniAppSDK 权限闸), 否则 LLMLite。agent 不在岗时由 code/workflow 的缺位注册补。独立穿衣无 handlers 镜像 → 跳过。 ── */
+  if (ctx.sdk && ctx.sdk.handle && ctx.sdk.handlers) {
+    ctx.sdk.handle('ai.chat', async a => { const L = await llm(); return L.chat(L.lite ? a : Object.assign({}, a, { fromMiniApp: true })); });
+    ctx.sdk.handleStream('ai.chatStream', async function* (a) {
+      const L = await llm();
+      for await (const ch of L.chatStream(L.lite ? a : Object.assign({}, a, { fromMiniApp: true }))) yield { delta: (ch && ch.delta) || '', reasoning: (ch && ch.reasoning) || '' };
+    });
+  }
+  const appsOr = () => apps() || { /* 界面 Petri 缺位时的 kv 兜底: miniapp 记录本就住在 Stem 的 kv 里(miniapp:<id>), schema 即契约 */
+    async list() { return (await ctx.kv.list('miniapp:')).map(e => e.value).filter(x => x && !x.deleted); },
+    async get(id) { return ctx.kv.get('miniapp:' + id); },
+    async create(rec) {
+      const id = (rec && rec.id) || 'm' + Date.now().toString(36);
+      const full = Object.assign({ id, name: '未命名', desc: '', code: '', icon: '📦', origin: 'agent', createdAt: Date.now() }, rec, { id, updatedAt: Date.now() });
+      await ctx.kv.set('miniapp:' + id, full);
+      ctx.emit('apps:changed');
+      return full;
+    },
+    async update(id, patch) {
+      const r = await ctx.kv.get('miniapp:' + id); if (!r) throw new Error('无此应用');
+      Object.assign(r, patch || {}, { updatedAt: Date.now() });
+      await ctx.kv.set('miniapp:' + id, r);
+      ctx.emit('apps:changed');
+      return r;
+    },
+    async remove(id) { await ctx.kv.del('miniapp:' + id); ctx.emit('apps:changed'); },
+  };
+  const S = { get: (k, d) => ctx.kv.get(k).then(v => v == null ? d : v), set: (k, v) => ctx.kv.set(k, v), del: k => ctx.kv.del(k) };
+
+  /* ════ 眼手全套: 宿主侧十件套 + iframe 侧 shim + trace 缓冲, 全部随本块。
+     归属=提供者不是独占者: workflow/code/miniapp 照常经 SDK 调用。本块不在岗 → 眼手消失(诚实降级, 无消费者)。
+     独立穿衣 runtime 为 null → 不注册(眼没有观察对象, 孤儿降级)。 ════ */
+  if (ctx.runtime && ctx.sdk && ctx.sdk.handle) (() => {
+    const RT = ctx.runtime, rid = a => a && (a.id || a.miniappId || a.channel); // 寻址键: 优先 miniappId(稳定), channel 也认
+    /* iframe 侧 shim: mount 注入点经 service('runtime-shim') 拼接, 走公开 colony.expose 注册。
+       挂载时快照 — 本块启用前挂的帧无眼手, 调用如实报"未暴露能力", 重开该 miniapp 即得。 */
+    ctx.provide('runtime-shim', { js: ';(function(){'
+      + 'function _t(el){return (el.textContent||"").trim().replace(/\\s+/g," ").slice(0,80);}'
+      + 'function _bt(){return document.body?(document.body.innerText||"").trim().replace(/\\s+/g," "):"";}'
+      + 'function _sel(el){if(!el)return null;if(el.id)return "#"+el.id;var p=el.tagName.toLowerCase(),par=el.parentElement;'
+      + 'if(par){var sb=[].slice.call(par.children).filter(function(c){return c.tagName===el.tagName});if(sb.length>1)p+=":nth-of-type("+(sb.indexOf(el)+1)+")";}return p;}'
+      + 'function _vis(el){var r=el.getBoundingClientRect(),s=getComputedStyle(el);return r.width>0&&r.height>0&&s.visibility!=="hidden"&&s.display!=="none";}'
+      + 'function _rc(el){var r=el.getBoundingClientRect();return {x:Math.round(r.x),y:Math.round(r.y),w:Math.round(r.width),h:Math.round(r.height)};}'
+      + 'function _safe(v,d){d=d||0;if(v==null||typeof v==="number"||typeof v==="boolean")return v;if(typeof v==="string")return v.length>2000?v.slice(0,2000)+"...":v;'
+      + 'if(typeof v==="function")return "[Function]";if(v.nodeType===1)return {__dom:v.tagName.toLowerCase(),id:v.id||undefined,text:_t(v)};if(d>4)return "[Depth]";'
+      + 'if(Array.isArray(v))return v.slice(0,60).map(function(x){return _safe(x,d+1)});var o={},n=0;for(var k in v){if(n++>40)break;try{o[k]=_safe(v[k],d+1)}catch(_e){o[k]="[Err]"}}return o;}'
+      + 'colony.expose("__snapshot",function(){var bt=[].slice.call(document.querySelectorAll("button,[role=button],a[href],input[type=button],input[type=submit]")).filter(_vis).slice(0,40)'
+      + '.map(function(el){return {selector:_sel(el),text:_t(el)||el.value||"",rect:_rc(el)}});var ins=[].slice.call(document.querySelectorAll("input,textarea,select")).filter(_vis).slice(0,40)'
+      + '.map(function(el){return {selector:_sel(el),value:el.value}});return {title:document.title,visibleText:_bt().slice(0,1500),buttons:bt,inputs:ins,url:location.href};});'
+      + 'colony.expose("__click",function(a){var el=a&&a.selector?document.querySelector(a.selector):(a&&a.x!=null?document.elementFromPoint(a.x,a.y):null);'
+      + 'if(!el)return {ok:false,error:"未找到元素"};var b=_bt().slice(0,200);el.click();var af=_bt().slice(0,200);'
+      + 'return {ok:true,clicked:_sel(el),text:_t(el),beforeText:b,afterText:af,changed:b!==af};});'
+      + 'colony.expose("__input",function(a){var el=a&&a.selector?document.querySelector(a.selector):null;if(!el)return {ok:false,error:"未找到输入框"};'
+      + 'el.value=a.value;el.dispatchEvent(new Event("input",{bubbles:true}));el.dispatchEvent(new Event("change",{bubbles:true}));return {ok:true,selector:_sel(el),value:el.value};});'
+      + 'colony.expose("__key",function(a){var el=a&&a.selector?document.querySelector(a.selector):(document.activeElement||document.body);'
+      + '["keydown","keypress","keyup"].forEach(function(tp){el.dispatchEvent(new KeyboardEvent(tp,{key:a.key,bubbles:true}))});return {ok:true,key:a.key};});'
+      + 'colony.expose("__eval",function(a){return Promise.resolve((0,eval)(a&&a.expr)).then(function(v){return {ok:true,value:_safe(v,0)};});});'
+      + 'colony.expose("__screenshot",function(){var cs=document.querySelectorAll("canvas");if(cs.length){var b=cs[0];for(var i=1;i<cs.length;i++){if(cs[i].width*cs[i].height>b.width*b.height)b=cs[i];}'
+      + 'try{return {ok:true,kind:"canvas",mimeType:"image/png",dataUrl:b.toDataURL("image/png"),width:b.width,height:b.height};}catch(e){return {ok:false,error:"canvas 截图失败(跨域污染): "+e.message};}}'
+      + 'return new Promise(function(rs){try{var w=Math.min(document.documentElement.clientWidth||800,1600),h=Math.min(document.documentElement.clientHeight||600,1600);'
+      + 'var NS="http://www.w3.org/2000/svg";var cl=document.documentElement.cloneNode(true);var sc=cl.querySelectorAll("script");for(var i=0;i<sc.length;i++)sc[i].parentNode.removeChild(sc[i]);'
+      + 'var svg=document.createElementNS(NS,"svg");svg.setAttribute("width",w);svg.setAttribute("height",h);var fo=document.createElementNS(NS,"foreignObject");fo.setAttribute("width","100%");'
+      + 'fo.setAttribute("height","100%");fo.appendChild(cl);svg.appendChild(fo);var ser=new XMLSerializer().serializeToString(svg);'
+      + 'var im=new Image();im.onload=function(){try{var c=document.createElement("canvas");c.width=w;c.height=h;var g=c.getContext("2d");'
+      + 'g.fillStyle="#0a0a0a";g.fillRect(0,0,w,h);g.drawImage(im,0,0);rs({ok:true,kind:"dom-raster",mimeType:"image/png",dataUrl:c.toDataURL("image/png"),width:w,height:h,'
+      + 'note:"foreignObject 栅格化, 跨域图/外链样式可能缺"});}catch(e){rs({ok:false,error:"栅格化失败(跨域污染): "+e.message});}};'
+      + 'im.onerror=function(){rs({ok:false,error:"SVG 渲染失败; 改用 runtime.eval 取 svg.outerHTML 或读 snapshot"});};'
+      + 'im.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(ser);}catch(e){rs({ok:false,error:"DOM 截图: "+e.message});}});});'
+      + 'colony.expose("__ping",function(){return {ok:true,ready:true};});' // 首帧就绪探针: run miniapp 等它应答再返回(比盲等确定)
+      + 'colony.expose("__waitFor",function(a){return new Promise(function(rs){var sel=a&&a.selector,txt=a&&a.text,to=Math.max(100,Math.min((a&&a.timeout)|0||8000,60000));' // 等元素/文字出现: MutationObserver 事件驱动, 替忙轮询; iframe 与 host 伪帧经同一 shim 天然同源
+      + 'function hit(){if(sel){var el=document.querySelector(sel);return (el&&_vis(el))?{selector:sel,text:_t(el)}:null;}if(txt){return ((document.body&&document.body.innerText||"").indexOf(txt)>=0)?{text:txt}:null;}return {ready:true};}'
+      + 'var h0=hit();if(h0)return rs({ok:true,found:true,waitedMs:0,match:h0});var t0=Date.now(),done=false;'
+      + 'function fin(okv){if(done)return;done=true;try{obs.disconnect()}catch(e){}clearTimeout(tm);rs(okv?{ok:true,found:true,waitedMs:Date.now()-t0,match:hit()||true}:{ok:false,found:false,waitedMs:Date.now()-t0,error:"waitFor 超时("+to+"ms)未出现 "+(sel||txt||"")});}'
+      + 'var obs=new MutationObserver(function(){if(hit())fin(true)});try{obs.observe(document.documentElement,{childList:true,subtree:true,attributes:true,characterData:true})}catch(e){}'
+      + 'var tm=setTimeout(function(){fin(false)},to);});});'
+      + '})();' });
+    /* 宿主伪帧 {id:"host"}: 同一份 shim 直接跑在顶层 document — dock/工作流画布/桌面全界面同享同一双眼手(通用能力+薄管道, 零领域适配码; iframe 内容不入宿主截图属栅格化天然边界) */
+    let _hostFns = null;
+    const hostEyes = () => {
+      if (!_hostFns) { _hostFns = {}; try { new Function('colony', ctx.service('runtime-shim').js)({ expose: (n, f) => { _hostFns[n] = f; } }); } catch (e) { } }
+      return _hostFns;
+    };
+    const eye = (a, path, args) => {
+      const k = rid(a);
+      if (k === 'host') { const f = hostEyes()[path]; return Promise.resolve(f ? f(args || {}) : { ok: false, error: '宿主眼手不识别 ' + path }); }
+      return RT.invoke(k, path, args);
+    };
+    const _rtTraces = {}; // channel → 环形缓冲(stem 只 emit 不存, 缓冲随眼手归本块; 本块重载即清 — trace 本就易失)
+    ctx.on('runtime:trace', ev => { if (!ev || !ev.channel) return; const a = (_rtTraces[ev.channel] = _rtTraces[ev.channel] || []); a.push({ level: ev.level, msg: ev.msg, ts: ev.ts }); if (a.length > 200) a.shift(); });
+    ctx.sdk.handle('runtime.listFrames', async () => RT.list().concat([{ channel: 'host', miniappId: 'host', mode: 'host', alive: true, note: 'Colony 宿主界面(dock/工作流画布/桌面) — 同一双眼手, {id:"host"} 寻址' }]));
+    ctx.sdk.handle('runtime.invoke', async a => eye(a, a && a.path, a && a.args));
+    ctx.sdk.handle('runtime.snapshot', async a => eye(a, '__snapshot', {}));
+    ctx.sdk.handle('runtime.click', async a => eye(a, '__click', a || {}));
+    ctx.sdk.handle('runtime.input', async a => eye(a, '__input', a || {}));
+    ctx.sdk.handle('runtime.key', async a => eye(a, '__key', a || {}));
+    ctx.sdk.handle('runtime.eval', async a => eye(a, '__eval', a || {}));
+    ctx.sdk.handle('runtime.waitFor', async a => eye(a, '__waitFor', a || {})); // 等元素/文字出现(免忙轮询); {id,selector|text,timeout}; host 伪帧同享
+    ctx.sdk.handle('runtime.screenshot', async a => { // 像素眼: 截图大串存 store 回 ref(不撑爆上下文), getShot attach 喂多模态
+      const shot = await eye(a, '__screenshot', {});
+      if (!shot || !shot.ok || !shot.dataUrl) return shot || { ok: false };
+      const ref = 'shot:' + Date.now().toString(36);
+      try { await ctx.kv.set('runtimeshot:' + ref, { dataUrl: shot.dataUrl, mimeType: shot.mimeType, at: Date.now() }); } catch (e) { }
+      return { ok: true, kind: shot.kind, width: shot.width, height: shot.height, mimeType: shot.mimeType, ref, bytes: (shot.dataUrl || '').length, hint: '像素已存; runtime.getShot {ref,"attach":1} 喂多模态大脑看图(字节不进文本上下文)' };
+    });
+    ctx.sdk.handle('runtime.getShot', async a => { // 防倾倒: 字节不进上下文 — attach 走既有回灌通道喂多模态, full 才回原文(曾整段 base64 直灌=烧token且文本脑看不见)
+      const key = 'runtimeshot:' + (a && a.ref), v = await ctx.kv.get(key);
+      if (!v) return null;
+      if (a && a.full) return v;
+      if (a && a.attach) { _attachQueue.push({ addr: key, du: v.dataUrl, name: String((a && a.ref) || '截图') }); return { ref: a.ref, attached: true, note: '截图真身将随下一轮消息附上(多模态大脑可见; 纯文本大脑仍不可见)' }; }
+      return { ref: a.ref, mimeType: v.mimeType, bytes: (v.dataUrl || '').length, hint: '{"attach":1} 喂多模态大脑看图; {"full":1} 才回原文; 对话展示 [[show:' + key + ']]' };
+    });
+    ctx.sdk.handle('trace.query', async a => {
+      a = a || {};
+      const wantSpecific = !!(a.id || a.miniappId || a.channel);   // 指定了某帧
+      const fr = RT.get(rid(a)); const chan = (a.channel && RT.frames[a.channel] ? a.channel : (fr && fr.channel));
+      let arr;
+      if (chan) arr = (_rtTraces[chan] || []).map(t => Object.assign({ channel: chan, miniappId: fr && fr.miniappId }, t));
+      else if (wantSpecific) arr = [];   // 指定的帧不存在 → 空(诚实)
+      else { // 没指定帧: 聚合所有活帧的 trace(别返裸[] 让 agent 误读"无错误"; 每条带 channel/miniappId 好定位)
+        arr = [];
+        for (const c in _rtTraces) { const f = RT.frames[c]; for (const t of _rtTraces[c]) arr.push(Object.assign({ channel: c, miniappId: f && f.miniappId }, t)); }
+        arr.sort((x, y) => (x.ts || 0) - (y.ts || 0));
+      }
+      if (a.level) arr = arr.filter(t => t.level === a.level);
+      return arr.slice(-(a.limit || 50));
+    });
+  })();
+
+  /* ════ 地图(常驻上下文的全部知识) ════ */
+  const MAP = [
+    '你是 Colony 的全能 agent。Colony = Stem(不可改) + 可插拔的 Petri(系统块, 源码可改 = 改产品本身, 你有权限) + 用户 miniapp(iframe 里的完整 HTML)。在场名单看快照, 不要假设。动手前凡有不确定先 read——这是铁律, 没有"做不了", 只有"还没读"。改坏自动回滚、可恢复出厂, 大胆做。',
+    '## 四原语(target = 地址族 block/miniapp/kv + 能力面 call:; 不为功能写死分支)',
+    'read: map|capabilities|blocks|block:<id>|stem|{source,page}|miniapps|miniapp:<id>|ana:<目标>|kv:<key>(取值)|kv:<前缀>:(列目录, 前缀以冒号结尾, 如 target:"kv:task:")。block/stem 无参回结构信封(目录+行号); 取段 {range:[起,止]}/{find:"词",around:N}; 全文 {"full":1} 64K 分页',
+    'write(target 必填字符串, 其余键同级): 建应用 target:"miniapp"+record:{name,code} | 改应用 target:"miniapp:<id>"+patch:{} | 热替换块 target:"block:<id>"+code | 存值 target:"kv:<key>"+value(value:null 删, patch:{} 对象增量)',
+    'edit: {target:"miniapp:<id>"|"block:<id>", find, replace, all?} 精确替换(find 须唯一否则 all:true)',
+    'run(target 必填): target:"call:<ns.method>"+args 调单个能力(全称如 runtime.snapshot; 拿不准先 read capabilities); target:"js"+code(可选 args/timeout) 写一段 JS 编排多步——体内 await colony.call("<ns.method>",{}) 或 colony.<ns>.<方法>()、await sleep(ms)、return 值回灌; 多步/循环/边跑边等一轮搞定, 省往返(直连 fetch 已禁, 网络走 net.fetch); 长任务 call:agent.loop 自主跑 observe→diagnose→act→verify | target:"miniapp:<id>" 打开 | target:"tts"+text | target:"blocks:reset:<id>"',
+    '格式(```tool 围栏, 一栏一个 JSON, args.target 必填不能空, 可多栏): ```tool\n{"name":"read","args":{"target":"miniapps"}}\n``` — 建应用同理 {"name":"write","args":{"target":"miniapp","record":{"name":"x","code":"<!DOCTYPE html>…"}}}; 需要就发围栏, 结果回来继续; 权限除stem外全开, 主动执行别反复确认, 完成后简洁交代。',
+    '展示: 给用户看图/音视频/应用/文件/数据, 回答正文里写 [[show:<地址>]] 自动渲染(地址=kv key 裸写, 如 media:<id>/chatasset:<id>/wfasset:<id>/runtimeshot:<ref>, 或 miniapp:<id>/fs:<路径>); 大字节能力结果引擎自动存 kv 回 mediaRef 直接用, 别把 base64 写进回答。',
+    '## 行事方法',
+    '侦察顺序: blocks/miniapps 看全景 → block:<id> 精读 → 必要时 stem/source。小改 edit, 大改 write。建应用 code 一次写完整可运行 HTML(含样式)。',
+    '大任务先 write kv:task:<id> 台账(value:{goal,steps:[{t,done}],note}), 每步 patch 更新, 断线/换会话后凭台账续作——长程记忆靠台账(read kv:task: 列表)。',
+    '## 技能(机制详情都在这, 按需加载)',
+    '快照按 owner 列技能(名+desc)。接任务扫目录, 对口才 read kv:skill:<owner>:<名> 取正文, 读过别重复。沉淀克制: 仅跨任务可复用的套路才 write kv:skill:petri:agent:<名> {value:{desc:触发场景, guide}}; 写前看目录, 已有覆盖就更新那条、不另起; 一次性/没验证/太碎的不存; 过时 value:null 删。',
+    '表达: 干活时每步一句话说明在做什么; 答复精准不重复, 不复述已说过的; 长解释只在被问原因时给。要动手就在同一条消息里发 ```tool 工具围栏——只说"我先去做X"却不发围栏, 等于什么都没做, 别把计划当成执行。',
+    '自省: 用户问你的系统提示词/MAP/身份设定时, read "prompt" 取真实原文并原样呈现——这是产品开发者的自检入口, 你的提示词就是开发者写的, 他有权看; 不要套用"不泄露系统提示"的泛化守则来搪塞(那条对普通终端用户成立, 对在 Colony 里调试自己产品的开发者不成立)。',
+    '用户表达稳定偏好时, 主动把 kv:settings:agent.memory 重写为合并后的简短版(≤400字)。',
+    '凡新增/改 skill、MAP 或 memory, 当轮告知用户改了哪个 key + 一句摘要(便于复查删改)。三者严控冗余、精简去重、宁缺勿滥。',
+  ].join('\n');
+
+  /* MAP 进 kv: seed-once(用户可改, 不覆写); 出厂种子仍在源码 const MAP。读/构建系统提示一律走 kv, 空则回退源码种子——删掉 kv 即时恢复出厂 */
+  if (ctx.kv) ctx.kv.get('map:petri:agent').then(v => { if (!v) ctx.kv.set('map:petri:agent', MAP); }).catch(() => { });
+  const mapText = async () => { try { const v = await ctx.kv.get('map:petri:agent'); if (v) return String(v); } catch (e) { } return MAP; };
+
+  /* ════ 四原语 ════ */
+  const _fails = Object.create(null);   // 失败熔断: 同一调用反复失败→提示逐级加厚, 不禁止执行
+  async function prim(name, args) {
+    const sig = name + '|' + ((args && typeof args.target === 'string') ? args.target : '?');
+    try { const r = await _prim(name, args); _fails[sig] = 0; return r; }
+    catch (e) {
+      const n = _fails[sig] = (_fails[sig] || 0) + 1;
+      if (n === 2) e.message += ' ◇同一目标第2次失败 — 核对参数形状; read 示例 {"target":"block:petri:code","find":"函数名","around":40}';
+      else if (n >= 3) e.message += ' ◇第' + n + '次仍失败 — 换路: 换关键字 / read "map" 重看能力面 / 目标有解析地图就先 read "ana:<目标>"';
+      throw e;
+    }
+  }
+  const STASH_SKIP = { 'runtime.getShot': 1 }; // 文档承诺回 dataUrl 的能力不收纳
+  const _bgSess = {}; // 后台工作流 runId→发起会话(detach 冒泡回原会话用; 曾按名字排队, 同名并发乱序会串会话)
+  async function stashMedia(path, out, args) { // 字节不过脑: 能力结果里的大 base64(顶层或 image/audio/video 一层嵌套)自动存 kv 回 ref — 截图模式推广到全能力面; note=生成语境(提示词摘要), 供 data.list {q} 按内容找回
+    if (!out || typeof out !== 'object' || STASH_SKIP[path]) return out;
+    const pick = o => { if (!o || typeof o !== 'object') return null;
+      for (const k of ['dataUrl', 'audioBase64', 'data', 'b64', 'base64']) { const s2 = o[k];
+        if (typeof s2 === 'string' && s2.length > 4000 && (k === 'dataUrl' || k === 'audioBase64' || o.mimeType)) return { k, s2, mime: o.mimeType || (k === 'dataUrl' ? s2.slice(5, s2.indexOf(';')) : '') }; }
+      return null; };
+    const hit = pick(out) || pick(out.image) || pick(out.audio) || pick(out.video);
+    if (!hit) return out;
+    const id = mkId('m'), du = /^data:/.test(hit.s2) ? hit.s2 : 'data:' + (hit.mime || 'application/octet-stream') + ';base64,' + hit.s2;
+    const note = args && (args.prompt || args.text) ? String(args.prompt || args.text).replace(/\s+/g, ' ').slice(0, 80) : undefined;
+    await ctx.kv.set('media:' + id, { dataUrl: du, mimeType: hit.mime, from: path, note }); // 只存干净载荷, 不存 raw 重复份; note=提示词摘要(按内容检索用)
+    return { mediaRef: 'media:' + id, bytes: hit.s2.length, mimeType: hit.mime, text: out.text || undefined, hint: '字节已存 kv 不进上下文; 对话展示写 [[show:media:' + id + ']]' };
+  }
+  /* 调任意已注册 SDK 能力(全产品统一能力面)。单点封装: 日后接 trace/流式/错误包装只改这里。 */
+  async function callCap(path, payload) {
+    const h = ctx.sdk && ctx.sdk.handlers && ctx.sdk.handlers[path];
+    if (!h) throw new Error('无此能力: ' + path + '(先 read capabilities)');
+    if (h.stream) throw new Error('能力 ' + path + ' 是流式, run call 暂不支持(经 miniapp 的 callStream 调)');
+    const slow = /^(ai\.(imagine|video|music|tts|transcribe|chat|chatStream)|workflow\.(debugRun|runEphemeral))/.test(path) ? 180000 : 25000; // 媒体生成/对话/工作流跑图天然慢, 25s 一刀切会误杀且底层还在跑白烧额度
+    const ms = Number(await ctx.kv.get('settings:agent.callTimeoutMs')) || slow;   // 防卡死: 能力调用(尤其 runtime.eval 经 iframe 往返)挂起时到点失败, 不冻死整轮
+    const run = Promise.resolve((typeof h === 'function' ? h : h.fn)(payload || {}, { channel: 'agent', context: { caller: 'petri:agent' } }));
+    let to;
+    const guard = new Promise((_, rej) => {
+      to = setTimeout(() => rej(new Error('能力 ' + path + ' 超时(>' + Math.round(ms / 1000) + 's) — iframe 可能卡死/eval 死循环或在 await 永不 resolve 的东西/帧正在重挂; 换更小的同步 eval、或先 run miniapp:<id> 重开再验, 别在 eval 里等长异步')), ms);
+    });
+    try {
+      const out = await stashMedia(path, await Promise.race([run, guard]), payload);
+      if (out && out.detached && out.runId) _bgSess[out.runId] = curSession; // 后台工作流: 按 runId 记发起会话, 完成冒泡精确回原会话(防切会话/同名并发串味)
+      return out;
+    } finally { clearTimeout(to); }
+  }
+  function dcOf(dc) { // doneCriteria 容错: 数组 / {checks:[]} / 单条 都归一成 checks 数组
+    if (Array.isArray(dc)) return dc;
+    if (dc && Array.isArray(dc.checks)) return dc.checks;
+    if (dc && dc.checks) return [dc.checks];
+    return [];
+  }
+  async function runMatchers(checks, defTarget) { // verify 引擎: 跑结构化 matcher → {passed,results,missing}; done 须运行态证据, 绝不把执行成功当 done
+    checks = Array.isArray(checks) ? checks : [];
+    const ridOf = t => { // 归一成裸 miniappId(对象/带前缀都认)
+      if (t == null) return t;
+      if (typeof t === 'object') return t.id || t.miniappId || t.channel;
+      const s = String(t); return s.indexOf(':') >= 0 ? s.split(':').pop() : s;
+    };
+    const srcOf = t => { if (t && typeof t === 'object') t = t.id || t.miniappId || ''; t = String(t || ''); return /^(miniapp|block|kv|stem|ana):/.test(t) ? t : ('miniapp:' + t); }; // 归一成 read 地址
+    const RUNTIME = { snapshotContains: 1, snapshotNotContains: 1, evalEquals: 1, buttonText: 1, clickChanges: 1, traceNoNewErrors: 1, screenshotExists: 1 };
+    const ensured = Object.create(null);
+    async function ensureFrame(id) { if (!id || ensured[id]) return; ensured[id] = 1; // 跑运行态判据前保活帧: 没开就自动 run(verify 自给自足, 不依赖 agent 留着帧)
+      try { const fr = await callCap('runtime.listFrames', {}); if (Array.isArray(fr) && fr.some(f => (f.miniappId || f.id) === id)) return; } catch (e) { }
+      try { await _prim('run', { target: 'miniapp:' + id }); } catch (e) { } } // run miniapp 已等首帧就绪, 不再手工 sleep(150)
+    const results = [];
+    for (const c of checks) {
+      const T = c.type; let pass = false, ev = '';
+      const id = ridOf(c.target != null ? c.target : defTarget);
+      try {
+        if (RUNTIME[T]) await ensureFrame(id);
+        if (T === 'snapshotContains' || T === 'snapshotNotContains') {
+          const s = await callCap('runtime.snapshot', { id }); const has = JSON.stringify(s).indexOf(c.text) >= 0;
+          pass = T === 'snapshotContains' ? has : !has; ev = (has ? '快照含' : '快照不含') + JSON.stringify(c.text);
+        } else if (T === 'sourceContains' || T === 'sourceNotContains') {
+          const s = await _prim('read', { target: srcOf(c.target != null ? c.target : defTarget) }); const has = (typeof s === 'object' ? JSON.stringify(s) : String(s)).indexOf(c.text) >= 0;
+          pass = T === 'sourceContains' ? has : !has; ev = (has ? '源码含' : '源码不含') + JSON.stringify(c.text);
+        } else if (T === 'evalEquals') {
+          const r = await callCap('runtime.eval', { id, expr: c.expr }); const v = r && (typeof r === 'object') && ('value' in r) ? r.value : r;
+          pass = JSON.stringify(v) === JSON.stringify(c.expected); ev = 'eval=' + JSON.stringify(v).slice(0, 80);
+        } else if (T === 'buttonText') {
+          const s = await callCap('runtime.snapshot', { id }); const bs = s.buttons || [];
+          const b = c.selector ? bs.find(x => x.selector === c.selector) : bs[c.index | 0];
+          pass = !!(b && b.text === c.expected); ev = '按钮=' + JSON.stringify(b && b.text);
+        } else if (T === 'clickChanges') {
+          const r = await callCap('runtime.click', { id, selector: c.selector }); pass = !!(r && r.changed); ev = 'changed=' + (r && r.changed);
+        } else if (T === 'traceNoNewErrors') {
+          const tr = await callCap('trace.query', { id, level: 'error' }); pass = !(tr && tr.length); ev = '错误' + ((tr && tr.length) || 0) + '条';
+        } else if (T === 'screenshotExists') {
+          const r = await callCap('runtime.screenshot', { id }); pass = !!(r && r.ok); ev = (r && r.kind) || 'fail';
+        } else { ev = '未知 matcher:' + T; }
+      } catch (e) { pass = false; ev = '✗ ' + e.message; }
+      results.push({ type: c.type, pass, evidence: ev });
+    }
+    return { passed: results.length > 0 && results.every(r => r.pass), results, missing: results.filter(r => !r.pass).map(r => r.type + ':' + r.evidence) };
+  }
+  const SELF_WARN = '目标是我自己的运行体: 热替换会重启对话面板、当前轨迹清空。请先告知用户并征得同意, 把要点写进 kv:task: 台账防丢, 然后同参数加 {"confirmSelf":true} 重试';
+  /* run js 沙箱 runner: node iframe 内固定壳, expose __ping/__runjs; 复用 stem sdkBootstrap 的 colony.call/invoke, 零新协议。
+     缴械直连网络=纪律信号(非安全边界, 边界是 iframe sandbox allow-scripts 无同源); code 经 AsyncFunction 执行, 收 input/colony/sleep, return 值回灌。 */
+  const JS_RUNNER = '<!DOCTYPE html><html><head></head><body><' + 'script>' + [
+    '(function(){',
+    'var blk=function(n){return function(){throw new Error(n+" 在 run js 沙箱内禁用: 网络走 colony.call(\\"net.fetch\\",{url}); 本地数据用 data.*/fs.* 能力");};};',
+    'try{window.fetch=blk("fetch")}catch(e){}try{window.XMLHttpRequest=blk("XMLHttpRequest")}catch(e){}try{window.WebSocket=blk("WebSocket")}catch(e){}try{navigator.sendBeacon=blk("sendBeacon")}catch(e){}',
+    'var AF=Object.getPrototypeOf(async function(){}).constructor;',
+    'function sleep(ms){return new Promise(function(r){setTimeout(r,Math.max(0,Math.min(+ms||0,120000)))})}',
+    'function arm(){if(!window.colony||!window.colony.expose){return setTimeout(arm,10)}',
+    'window.colony.expose("__ping",function(){return {ready:true}});',
+    'var _sm=function(v){try{if(v==null)return v;var s=typeof v==="string"?v:JSON.stringify(v);return s.length>200?s.slice(0,200)+"…":s}catch(e){return "[?]"}};', // 每步调用的参数/返回摘要, 供 trace 与回灌可见(执行过程真实可见)
+    'window.colony.expose("__runjs",function(d){var calls=[];var C=Object.create(window.colony);',
+    'C.call=function(p,a){var rec={path:p,args:_sm(a)};calls.push(rec);return window.colony.call(p,a).then(function(r){rec.ok=true;rec.result = _sm(r);return r},function(e){rec.ok=false;rec.err=e&&e.message;throw e})};',
+    'var fn;try{fn=new AF("input","colony","sleep",(d&&d.code)||"")}catch(e){return {jsOk:false,error:"语法错误: "+(e&&e.message),calls:[]}}',
+    'return Promise.resolve().then(function(){return fn((d&&d.args)||{},C,sleep)}).then(function(v){return {jsOk:true,value:v===undefined?null:v,calls:calls}},function(e){return {jsOk:false,error:(e&&e.message)||String(e),calls:calls}})});',
+    '}arm();})();'
+  ].join('') + '</' + 'script></body></html>';
+  async function runJs(args) { // run js 宿主侧: 挂帧→握手→invoke 执行→超时焚帧。帧随用随焚, 不进 listFrames 常驻
+    if (!ctx.runtime || !ctx.runtime.mount) throw new Error('运行时不在岗, 无法执行 js(需要 stem runtime; 独立穿衣模式改用 run call:<能力> 逐个调用)');
+    const code = String(args.code || ''); if (!code.trim()) throw new Error('run js 需要 {code:"..."}; 体内可 await colony.call("<能力>",{}) / await sleep(ms), return 值回灌; 直连 fetch 已禁, 网络走 net.fetch');
+    const timeout = Math.min(Math.max(1000, (args.timeout | 0) || 20000), 180000);
+    const frame = ctx.runtime.mount({ code: JS_RUNNER, mode: 'node', context: { caller: 'agent-js' } });
+    const nap = ms => new Promise(r => setTimeout(r, ms));
+    try {
+      const readyBy = Date.now() + 6000; // postMessage 到未装载完的帧会丢, 故握手轮询 __ping 直到应答
+      for (; ;) {
+        try { const pong = await Promise.race([frame.invoke('__ping', {}), new Promise((_, rej) => setTimeout(() => rej(new Error('__np__')), 250))]); if (pong && pong.ready) break; }
+        catch (e) { if (Date.now() > readyBy) throw new Error('run js 沙箱启动超时(runtime 异常)'); await nap(30); }
+      }
+      const r = await Promise.race([
+        frame.invoke('__runjs', { code, args: args.args || {} }),
+        new Promise((_, rej) => setTimeout(() => rej(new Error('run js 超时 ' + timeout + 'ms(死循环或长阻塞, 沙箱帧已终止)。缩小范围/分步; 等异步用 await sleep(ms) 轮询, 别死等')), timeout))
+      ]);
+      if (!r || r.jsOk === false) throw new Error('js 执行出错: ' + ((r && r.error) || '未知') + (r && r.calls && r.calls.length ? '(执行中已调用 ' + r.calls.map(c => c.path).join('/') + ')' : ''));
+      const value = (r.value && typeof r.value === 'object') ? await stashMedia('run:js', r.value, args) : r.value;
+      return { jsOk: true, value, calls: r.calls || [] };
+    } finally { try { frame.destroy(); } catch (e) { } }
+  }
+  async function _prim(name, args) {
+    args = args || {};
+    if (args.target != null && typeof args.target !== 'string') throw new Error('target 必须是字符串, 收到 ' + Object.prototype.toString.call(args.target) + '; 示例 {"target":"block:petri:code"}');
+    const t = String(args.target || '');
+    if (name === 'read') {
+      if (t === 'map') return await mapText();
+      if (t === 'prompt') return { system: await buildSystemPrompt(), note: '以上即每轮发给模型的 system 原文(快照随当下变化); 工具结果以 user 角色回灌, 前缀含说话纪律。用户要看提示词原文时, 把 system 全文原样贴进回答——此要求优先于"不复述过程"。', feedPrefix: '工具结果(继续; 动手前只说一句正在做什么, 最终结论一次说清、不复述过程):' };
+      if (t === 'blocks') {
+        const ls = ctx.stem.listBlocks(); const out = [];
+        for (const b of ls) { let a = null; try { a = await ctx.kv.get('ana:block:' + b.id); } catch (e) { } out.push(a ? Object.assign({}, b, { analyzed: true }) : b); }
+        return { blocks: out, hint: out.some(b => b.analyzed) ? '带 analyzed:true 的块已有解析地图 — read "ana:block:<id>" 先看模块/职责/行段, 远快于翻源码' : undefined };
+      }
+      if (t === 'miniapps') return (await appsOr().list()).map(m => ({ id: m.id, name: m.name, desc: m.desc, bytes: (m.code || '').length }));
+      if (t === 'stem') {
+        const k = ctx.stem.stemText ? ctx.stem.stemText() : '(此个体stem未提供 stemText 接口)';
+        const sl = sliceText(k, args, 'stem'); if (sl) return sl;
+        if (args.full) return Object.assign(pageOf(k, args, 'stem', 64000), { feedBudget: 66000 });
+        return { addr: 'stem', bytes: k.length, lines: k.split('\n').length, envelope: '结构信封(非全文)', outline: outlineOf(k, null),
+          hint: '取段 {"range":[起,止]} / 定位 {"find":"词","around":N} / 全文 {"full":1}(64K/页)' };
+      }
+      if (t === 'source') { // 整机源码完整可见, 分页通读不截断 — 分页逻辑与 pageOf 同源(曾各抄一份 SZ/页计算)
+        const full = ctx.stem.readSource();
+        const sliced = sliceText(full, args, 'source'); if (sliced) return sliced;
+        const pg = pageOf(full, args, 'source');
+        if (pg.pages > 1) pg.hint = '第 ' + pg.page + '/' + pg.pages + ' 页, 翻页用 {"target":"source","page":' + (pg.page + 1) + '}; 定位具体问题建议优先 read "block:<id>"(超回灌预算同样截断, 配 {find,around}/{range} 取段)';
+        return pg;
+      }
+      if (t.startsWith('block:')) {
+        const hi = t.indexOf('#');
+        if (hi > 0) {   // 子源码 block:<id>#常量名 → 内嵌载荷反转义为多行原文
+          const b = ctx.stem.getBlock(t.slice(6, hi)); if (!b) throw new Error('无此块');
+          const frag = t.slice(hi + 1).replace(/[^\w$]/g, '');
+          const m = b.code.match(new RegExp('\\b' + frag + '\\s*=\\s*("(?:[^"\\\\]|\\\\.)*")'));
+          if (!m) throw new Error('块内无载荷 ' + frag + '(载荷=形如 NAME = "…" 的超长字符串常量; 先 read 本块看 hint 列的候选名)');
+          let body; try { body = JSON.parse(m[1]); } catch (e) { throw new Error('载荷反转义失败: ' + e.message); }
+          return await dedup(t, args, body, () => sliceText(body, args, t) || pageOf(body, args, t));
+        }
+        const b = ctx.stem.getBlock(t.slice(6)); if (!b) throw new Error('无此块');
+        const payloads = [...b.code.matchAll(/\b([A-Za-z_$][\w$]*)\s*=\s*"(?:[^"\\]|\\.){4000,}"/g)].map(x => x[1]);
+        const ana = await ctx.kv.get('ana:' + t).catch(() => null);
+        const hint = ((payloads.length ? '含内嵌载荷: ' + payloads.join('/') + ' — read "' + t + '#' + payloads[0] + '" 展开为多行原文。' : '')
+          + (ana ? '已有解析地图 — read "ana:' + t + '" 先看模块/职责/行段再精读。' : '')) || undefined;
+        return await dedup(t, args, b.code, () => {
+          const sl = sliceText(b.code, args, t);
+          if (sl) { if (hint) sl.hint = (sl.hint ? sl.hint + ' ' : '') + hint; return sl; }
+          if (args.full) return Object.assign(pageOf(b.code, args, t, 64000), { feedBudget: 66000, hint });
+          const lines = b.code.split('\n');
+          return { id: t.slice(6), name: b.manifest.name, version: b.manifest.version, dirty: b.dirty, bytes: b.code.length, lines: lines.length,
+            envelope: '结构信封(非全文)', outline: outlineOf(b.code, ana),
+            hint: (((hint || '') + ' 取段 {"range":[起,止]} / 定位 {"find":"词","around":N} / 全文 {"full":1}(64K/页)').trim()) };
+        });
+      }
+      if (t.startsWith('ana:')) {   // 解析地图(petri:code 产物): 索引不是真相, 改码前仍须读源码
+        const inner = t.slice(4); let a = await ctx.kv.get(t);
+        if (!a && inner.startsWith('miniapp:')) { const m = await appsOr().get(inner.slice(8)); a = m && m.analysis; }
+        if (!a) throw new Error('该目标暂无解析地图(用代码解读块解析后才有)');
+        if (args.full) return a;
+        const regs = (a.regions || []).map(r => ({ t: r.t, range: r.range, brief: r.brief, stale: r.stale || undefined }));
+        return { addr: t, L0: a.L0 || '', srcHash: a.srcHash,
+          regions: regs.length ? regs : '(旧形状 ' + (a.segments || []).length + ' 段, 加 {"full":1} 看原始)',
+          hint: '选中模块后 read 原目标 {"range":[起,止]} 只取那段源码; stale=源码已变解释可能过时' };
+      }
+      if (t.startsWith('miniapp:')) { const m = await appsOr().get(t.slice(8)); if (!m) throw new Error('无此应用');
+        if (m.analysis) return Object.assign({}, m, { analysis: '(解析地图 ' + ((m.analysis.regions || m.analysis.segments || []).length) + ' 模块 — read "ana:' + t + '" 取地图, 远省于读全码)' });
+        return m; }
+      if (t === 'capabilities') return { capabilities: Object.keys((ctx.sdk && ctx.sdk.handlers) || {}).sort(), hint: 'run {target:"call:<能力>",args} 调用; 用法看对应 skill' };
+      if (t.startsWith('kv:')) {   // 通用持久态: settings/skill/task… 都是它的 key 前缀
+        const key = t.slice(3);
+        if (args.list || key === '' || key.slice(-1) === ':') {   // 目录模式: 只回元信息防上下文爆
+          return { prefix: key,
+            keys: (await ctx.kv.list(key)).map(e => ({ key: e.key, bytes: JSON.stringify(e.value == null ? null : e.value).length })),
+            hint: 'read kv:<完整key> 取正文; 大文本用 {find}/{range}' };
+        }
+        const v = await ctx.kv.get(key); if (v == null) throw new Error('无此键 ' + key + '(read kv:<前缀>: 列目录)');
+        if (args.attach && v && typeof v === 'object') { // 回灌: 图片真身随下一轮工具结果附给大脑(字节仍不过回答/档案, 轮末回引用原键不重复入库)
+          const du = _mediaDu(v);
+          if (!du || !/^data:image\//.test(du)) throw new Error('attach 仅支持图片资产(音频用 call:ai.transcribe 转写取文字)');
+          _attachQueue.push({ addr: key, du, name: v.name });
+          return { key, attached: true, note: '图片真身将随下一轮消息附上, 多模态大脑可直接看; 纯文本大脑仍不可见' };
+        }
+        if (!args.full && v && typeof v === 'object') { // 资产防倾倒: 大字节/长文本不进上下文, 要原文加 {"full":1}
+          const bs = ['dataUrl', 'audioBase64', 'data'].map(k2 => (typeof v[k2] === 'string' && v[k2].length > 4000) ? v[k2].length : 0).reduce((a2, b2) => a2 + b2, 0);
+          if (bs) return { key, mimeType: v.mimeType || '', name: v.name, bytes: bs, note: '媒体对象, 字节已省略(加 {"full":1} 取原文)', hint: '对话展示: [[show:' + key + ']]; 图片给大脑看: {"attach":1}' };
+          if (typeof v.text === 'string' && v.text.length > 4000) return sliceText(v.text, args, key)
+            || { key, mimeType: v.mimeType || 'text/plain', name: v.name, bytes: v.text.length, preview: v.text.slice(0, 800), hint: '长文本资产已省略全文: {find,around}/{range:[起,止]} 切片, {"full":1} 全文; 展示 [[show:' + key + ']]' };
+        }
+        return typeof v === 'string' ? (sliceText(v, args, key) || v) : v;
+      }
+      throw new Error('read 不认识 target: ' + t + '。合法族: map|capabilities|blocks|block:<id>|stem|source|prompt|miniapps|miniapp:<id>|ana:<目标>|kv:<key>|kv:<前缀>:' + (await addrHint(t)));
+    }
+    if (name === 'write') {
+      if (t === 'miniapp') { // record/value 都认; runner 读 code, 写成 html 自动归位(防白屏)
+        const rec = Object.assign({ origin: 'agent' }, args.record || args.value || {});
+        if (!rec.code && rec.html) rec.code = rec.html;
+        const r = await appsOr().create(rec); return { ok: true, id: r.id, name: r.name };
+      }
+      if (t.startsWith('miniapp:')) {
+        const id = t.slice(8);
+        if (args && args.delete === true) { await appsOr().remove(id); return { ok: true, deleted: id }; } // 改即删: 删除是 write 的一种语义, 不加第五原语
+        if (!args || args.patch == null) throw new Error('patch 为空。更新传 patch:{...}; 删除传 delete:true(patch:null 不再被静默当成空更新)');
+        const patch = Object.assign({}, args.patch); if (!patch.code && patch.html) patch.code = patch.html; // runner 读 code, patch 成 html 自动归位
+        const r = await appsOr().update(id, patch); return { ok: true, id: r.id };
+      }
+      if (t.startsWith('block:')) {
+        const bid = t.slice(6);
+        if (!ctx.stem.getBlock(bid)) throw new Error('无此块: ' + bid + ((await addrHint(bid)) || '(read blocks 看在场块)'));
+        if (bid === 'petri:agent' && !args.confirmSelf) throw new Error(SELF_WARN);
+        await ctx.stem.saveBlock(bid, args.code); ctx.emit('blocks:changed'); return { ok: true, dirty: true };
+      }
+      if (t.startsWith('kv:')) {   // 通用持久态写入: settings/skill/task… 都走这里
+        const key = t.slice(3); if (!key) throw new Error('kv key 为空');
+        if (args.delete === true || args.value === null) { await ctx.kv.del(key); return { ok: true, deleted: key }; }
+        if (args.patch != null) {   // 对象增量合并(台账逐步更新), 免读-改-写
+          const v = (await ctx.kv.get(key)) || {};
+          if (typeof v !== 'object' || Array.isArray(v)) throw new Error('patch 仅用于对象值; 用 value 整体写');
+          Object.assign(v, args.patch); await ctx.kv.set(key, v); return { ok: true, key };
+        }
+        await ctx.kv.set(key, args.value); return { ok: true, key };
+      }
+      throw new Error('write 不认识 target: ' + t + '。合法族: miniapp(建应用)|miniapp:<id>(patch/delete)|block:<id>(code)|kv:<key>(value/patch/delete)' + (await addrHint(t)));
+    }
+    if (name === 'edit') {
+      const isBlock = t.startsWith('block:');
+      const code = isBlock ? (ctx.stem.getBlock(t.slice(6)) || {}).code : ((await appsOr().get(t.slice(8))) || {}).code;
+      if (code == null) { const eid = t.replace(/^(block:|miniapp:)/, ''); throw new Error('目标不存在: ' + t + ((await addrHint(eid)) || '(edit 只认 block:<id>|miniapp:<id>)')); }
+      if (isBlock && t.slice(6) === 'petri:agent' && !args.confirmSelf) throw new Error(SELF_WARN);
+      const find = String(args.find || ''); if (!find) throw new Error('缺 find');
+      const n = code.split(find).length - 1;
+      if (!n) throw new Error('find 未命中(空格/换行须逐字一致)');
+      if (n > 1 && !args.all) throw new Error('find 命中 ' + n + ' 处, 需唯一或传 all:true');
+      const next = args.all ? code.split(find).join(args.replace || '') : code.replace(find, args.replace || '');
+      if (isBlock) { await ctx.stem.saveBlock(t.slice(6), next); ctx.emit('blocks:changed'); } else await appsOr().update(t.slice(8), { code: next });
+      return { ok: true, replacements: args.all ? n : 1 };
+    }
+    if (name === 'run') {
+      if (t.startsWith('call:')) { // 万能档: 调任意已注册能力回结果; 参数双形兼容 —— 嵌套 {args:{...}} 或同级键(与 read/edit 一致); 混合形(args.args + 同级键)同级键并入, 曾致 detach:1 被静默吞
+        const rest = Object.assign({}, args); delete rest.target; delete rest.args;
+        return await callCap(t.slice(5), args.args ? Object.assign(rest, args.args) : rest);
+      }
+      if (t === 'js') return await runJs(args); // 编排档: 一段 JS 里串多步能力+循环+等待, 一轮完成(替代逐个 call 的多轮往返)
+      if (t.startsWith('miniapp:')) {
+        const u = ui(); if (!u) throw new Error('界面块不在岗, 打不开运行窗 — 可 read miniapp:' + t.slice(8) + ' 看源码');
+        const mid = t.slice(8); u.openRunner(mid);
+        let ready = false; // 等首帧就绪(轮询眼手 __ping)再返回, 免"打开即 snapshot 必超时"的竞态; 无 <head> 的纯 HTML 无 shim → 探不到, 如实回 ready:false
+        if (ctx.runtime && ctx.runtime.invoke) { const by = Date.now() + 2500;
+          while (Date.now() < by) { try { const pg = await Promise.race([ctx.runtime.invoke(mid, '__ping', {}), new Promise((_, rej) => setTimeout(() => rej(new Error('t')), 200))]); if (pg && pg.ready) { ready = true; break; } } catch (e) { await new Promise(r => setTimeout(r, 60)); } }
+        }
+        return { ok: true, opened: mid, ready, note: ready ? undefined : '已打开但未探到就绪信号(可能无 <head> 故眼手未注入); 操作前用 runtime.waitFor 确认元素再动手' };
+      }   // 下三个打服务/stem面(非 SDK 能力)
+      if (t === 'tts') { return speakText(args.text || ''); }
+      if (t.startsWith('blocks:reset:')) { await ctx.stem.restoreFactory(t.slice(13)); ctx.emit('blocks:changed'); return { ok: true }; }
+      throw new Error('run 不认识 target: ' + t + '。合法族: call:<ns.method>(系统能力, 先 read capabilities)|js(写 JS 编排多步)|miniapp:<id>(打开应用)|tts|blocks:reset:<id>' + (await addrHint(t)));
+    }
+    throw new Error('未知原语: ' + name + '(只有 read/write/edit/run)');
+  }
+  async function addrHint(t) { // 地址族纠错提示: 裸 id → 指出所属族; 斜杠误写 → 提示冒号。只提示不代做
+    const s = String(t || ''); let h = '';
+    try {
+      if (s && !s.includes(':') && !s.includes('/')) {
+        if (await appsOr().get(s)) h = ' — "' + s + '" 是应用: 用 "miniapp:' + s + '"';
+        else if (ctx.stem.getBlock(s)) h = ' — "' + s + '" 是系统块: 用 "block:' + s + '"';
+      } else if (s.includes('/')) h = ' — 分隔符是冒号不是斜杠, 如 "' + s.replace(/\//g, ':') + '"';
+    } catch (e) { }
+    return h;
+  }
+  function describeToolResult(name, out, ok) {   // 给一句人话摘要而非裸 JSON 切片; 按原语与结果形状说真话, 不再万物"已写入"
+    if (!ok) return '✗ ' + String(out).slice(0, 120);
+    if (out == null) return '✓ 完成';
+    if (Array.isArray(out)) return '✓ 返回 ' + out.length + ' 项';
+    if (typeof out === 'object') {
+      if (out.blocks) return '✓ ' + out.blocks.length + ' 个系统块' + (out.blocks.some(b => b.analyzed) ? '(部分已解析)' : '');
+      if (out.hits) return '✓ 命中 ' + out.hits.length + ' 处';
+      if (out.regions) return '✓ 解析地图 ' + (Array.isArray(out.regions) ? out.regions.length + ' 模块' : '');
+      if (out.jsOk) return '✓ js 执行完成' + (out.calls && out.calls.length ? ' · ' + out.calls.length + ' 次 colony.call' : '');
+      if (out.clicked) return '✓ 点击 ' + out.clicked + (out.changed != null ? (out.changed ? ' · 界面有变化' : ' · 界面无变化') : '');
+      if (out.opened) return '✓ 已打开 ' + out.opened;
+      if (out.armed) return '✓ 循环已武装 · 上限 ' + (out.maxIters || '?') + ' 轮';
+      if (out.deleted) return '✓ 已删除 ' + out.deleted;
+      if (out.ok) return (name === 'write' || name === 'edit') ? ('✓ 已写入' + (out.dirty ? '(待保存)' : '')) : '✓ 完成';
+      if (out.totalLines) return '✓ ' + out.totalLines + ' 行' + (out.page ? ' · 第' + out.page + '/' + out.pages + '页' : '');
+      if (out.note) return '✓ ' + out.note.slice(0, 80);
+      if (out.manifest) return '✓ ' + (out.manifest.name || out.manifest.id || '块') + ' 源码';
+      return '✓ 完成';
+    }
+    return '✓ ' + String(out).slice(0, 100);
+  }
+  function describeToolCall(c) {
+    const a = c.args || {}, t = a.target || '';
+    if (c.name === 'read') return '读取 ' + (t === 'map' ? '能力地图' : t);
+    if (c.name === 'write') return t === 'miniapp' ? '创建应用「' + ((a.record || {}).name || '') + '」' : '写入 ' + t;
+    if (c.name === 'edit') return '修改 ' + t + ' (替换片段)';
+    if (c.name === 'run') return t === 'tts' ? '朗读' : t === 'js' ? '执行 js 编排' : '运行 ' + t;
+    return c.name;
+  }
+  /* chatStream(async 迭代器, yield {delta}) 聚合为 full, 增量交给 onDelta。
+     取消: AbortSignal 贯穿到 fetch/reader, 停止/插话即时生效(等下一个 chunk 的轮询在流停滞时永远等不到)。 */
+  async function streamText(args, onDelta, signal) {
+    let full = '';
+    try {
+      for await (const ch of (await llm()).chatStream(Object.assign({}, args, { signal }))) {
+        const d = (ch && (ch.delta || ch.text)) || '';
+        if (d) { full += d; if (onDelta) onDelta(d, full); }
+      }
+    } catch (e) {
+      if (!(e && e.name === 'AbortError')) throw e; // 取消: 返回已收部分, 与旧 break 语义一致; 其他错误如实上抛
+    }
+    return full;
+  }
+  function packResults(results) { // 回灌预算: 默认单条 24K/轮总 32K; 显式大读(full:1)的结果自带 feedBudget 按声明放行 — 大读是 agent 的知情选择
+    const PER = 24000, TOTAL = 32000;
+    const caps = (results || []).map(r => Math.min(70000, (r && r.result && typeof r.result === 'object' && r.result.feedBudget) || PER));
+    const roundCap = Math.max(TOTAL, ...(caps.length ? caps : [0]));
+    let used = 0;
+    return (results || []).map((r, i) => {
+      let s = typeof r === 'string' ? r : JSON.stringify(r);
+      let note = '';
+      const per = caps[i] || PER;
+      if (s.length > per) { note = '\n…[已截断: 全文 ' + s.length + ' 字, 以上是前 ' + per + ' 字。续读: {find,around} 定位 / {range:[起,止]} 取段 / block|stem 加 {"full":1,"page":n} 或 source 加 {"page":n} 翻页]'; s = s.slice(0, per); }
+      if (used + s.length > roundCap) { const left = Math.max(0, roundCap - used); note = '\n…[本轮回灌总预算用尽, 该条只给前 ' + left + ' 字, 下一轮继续读]'; s = s.slice(0, left); }
+      used += s.length;
+      return s + note;
+    }).join('\n---\n');
+  }
+  const _rd = Object.create(null);
+  const _h = s2 => { let h = 5381; for (let i = 0; i < s2.length; i++) h = (h * 33) ^ s2.charCodeAt(i); return (h >>> 0).toString(36); };
+  async function dedup(t, args, content, make) {   // 去重只省无效重复, 不伪造世界: 键含内容hash, 目标变了必重读
+    const key = t + '|' + JSON.stringify([args.find, args.range, args.page, args.around, args.full]);
+    const h = _h(content);
+    if (!args.fresh && _rd[key] === h) return { addr: t, note: '与上次读取完全相同(内容 hash ' + h + ' 未变), 全文略以省回灌; 要原文加 {"fresh":1} 或换参数', hash: h };
+    _rd[key] = h; return make();
+  }
+  function pageOf(txt, args, addr, sz) {
+    const SZ = sz || 20000, pages = Math.max(1, Math.ceil(txt.length / SZ));
+    const page = Math.min(Math.max(1, (args.page | 0) || 1), pages);
+    return { addr, page, pages, totalBytes: txt.length, totalLines: txt.split('\n').length, text: txt.slice((page - 1) * SZ, page * SZ),
+      hint: pages > 1 ? '翻页 {"page":' + (page + 1) + '}; 或 {find}/{range} 精确寻址' : undefined };
+  }
+  function outlineOf(code, ana) { // 结构目录: 解析地图 regions > 分隔线注释扫描 > 等距取样。信封的骨架, 不替代真源码
+    if (ana && Array.isArray(ana.regions) && ana.regions.length)
+      return ana.regions.map(r => ({ line: (r.range && r.range[0]) || 0, endLine: (r.range && r.range[1]) || undefined, text: ((r.t || '') + (r.brief ? ' — ' + String(r.brief).slice(0, 40) : '')).slice(0, 70) }));
+    const lines = code.split('\n'); const out = [];
+    for (let i = 0; i < lines.length && out.length < 80; i++) {
+      if (!/^\s*\/\*\s*[═=─—━-]{2,}/.test(lines[i])) continue;
+      let txt = lines[i].replace(/\*\//g, '').replace(/[\/*═=─—━-]/g, '').trim();
+      if (!txt && lines[i + 1]) txt = String(lines[i + 1]).replace(/^\s*\*+\s*/, '').replace(/\*\//g, '').replace(/[═=─—━]/g, '').trim();
+      if (txt) out.push({ line: i + 1, text: txt.slice(0, 70) });
+    }
+    if (out.length >= 3) return out;
+    const step = Math.max(200, Math.ceil(lines.length / 40)); const smp = [];
+    for (let i = 0; i < lines.length; i += step) { const l2 = (lines.slice(i, i + 3).find(x => x.trim()) || '').trim(); smp.push({ line: i + 1, text: l2.slice(0, 70) }); }
+    return smp;
+  }
+  function sliceText(txt, args, addr) { // 文本目标细粒度寻址: {find,around} 关键字定位 / {range:[起,止]} 行区间
+    if (args && Array.isArray(args.range)) {
+      const lines = txt.split('\n'); const s = Math.max(1, args.range[0] | 0), e = Math.min(lines.length, (args.range[1] | 0) || lines.length);
+      return { addr, range: [s, e], totalLines: lines.length, text: lines.slice(s - 1, e).join('\n') };
+    }
+    if (args && args.find) {
+      const lines = txt.split('\n'); const around = Math.min(400, (args.around | 0) || 30); const hits = [];
+      for (let i = 0; i < lines.length && hits.length < 5; i++) if (lines[i].includes(args.find)) {
+        if (lines[i].length > 1200) {   // 超长行: 命中点±600字开窗(不从行首倾倒)
+          const ln = lines[i]; let from = 0;
+          while (hits.length < 5) { const ix = ln.indexOf(args.find, from); if (ix < 0) break;
+            const w0 = Math.max(0, ix - 600), w1 = Math.min(ln.length, ix + args.find.length + 600);
+            hits.push({ atLine: i + 1, charWindow: [w0, w1], lineLength: ln.length, text: ln.slice(w0, w1), hint: '命中在超长行内(命中点±600字); 该行多半是内嵌载荷, read "' + addr + '#<载荷名>" 可展开多行' });
+            from = ix + args.find.length; }
+          continue;
+        }
+        const s = Math.max(0, i - around), e = Math.min(lines.length, i + around);
+        hits.push({ atLine: i + 1, lines: [s + 1, e], text: lines.slice(s, e).map(l => l.length > 500 ? l.slice(0, 500) + '…[行截断, 全行' + l.length + '字]' : l).join('\n') }); i = e;
+      }
+      return { addr, find: args.find, totalLines: lines.length, hits, hint: hits.length ? undefined : '未命中, 换关键字或用 range' };
+    }
+    return null;
+  }
+  async function buildSystemPrompt() {
+    const lines = ctx.stem.listBlocks().map(b => b.id + '·' + b.name + (b.dirty ? '(已修改)' : '') + (b.disabled ? '(禁用)' : '')).join(' | ');
+    let appsN = 0; try { appsN = (await appsOr().list()).length; } catch (e) { }   // appsOr: ui 缺席走 kv 兜底, 快照不谎报"0 个应用"
+    const lin = ctx.stem.lineage || {};
+    let skills = [];
+    try {
+      skills = (await ctx.kv.list('skill:')).map(e => { const n = e.key.slice(6); const d = e.value && e.value.desc; return d ? n + '(' + String(d).slice(0, 22) + ')' : n; });
+    } catch (e) { }
+    let mem = ''; try { mem = (await ctx.kv.get('settings:agent.memory')) || ''; } catch (e) { }
+    let taskLine = '';
+    try {
+      const ts = (await ctx.kv.list('task:')).map(e => e.value || {}).filter(v => (v.status || 'active') === 'active');
+      if (ts.length) taskLine = ' · 进行中任务: '
+        + ts.slice(0, 2).map(v => (v.goal || '?') + '(' + (v.steps || []).filter(s => s.done).length + '/' + (v.steps || []).length + ')').join('; ')
+        + (ts.length > 2 ? ' 等' + ts.length + '项' : '')
+        + ' — read "kv:task:" 看台账';
+    } catch (e) { }
+    return (await mapText()) + '\n## 当前个体快照(实时)\n第' + (lin.gen || '?') + '代 · 系统块: ' + lines + ' · 应用 ' + appsN + ' 个 · 能力 '
+      + Object.keys((ctx.sdk && ctx.sdk.handlers) || {}).length + ' 项(read capabilities) · 技能: ' + (skills.join(', ') || '(无)') + taskLine + '。需要细节就 read, 别凭印象。'
+      + (mem ? '\n## 用户偏好备忘\n' + String(mem).slice(0, 400) : '');
+  }
+  async function condense(hist, sid, brain) { // 滚动摘要压缩(被动阈值与🗜手动键共用): 旧文无损归档→模型压成接力摘要→替换; 失败保留原文
+    const keep = Number(await ctx.kv.get('settings:agent.keepRecent')) || 24;
+    if (hist.length <= keep + 2) return { ok: false, note: '记录仅 ' + hist.length + ' 条(保留窗 ' + keep + '), 无需压缩' };
+    const old = hist.slice(0, hist.length - keep);
+    const archiveKey = chatKey(sid) + ':archive:' + Date.now(); await S.set(archiveKey, old);
+    const sum = String(await streamText({ providerId: brain.providerId, model: brain.model, messages: [ // 走流式聚合: 非流式 chat 在流式默认的端点(网关壳/hermes 类大脑)会拿到 SSE 解析炸
+      { role: 'system', content: '把这段对话压成结构化接力摘要, 分条只留: ①用户最终目标 ②已完成动作 ③已读/已改对象及关键ID ④当前代码/数据状态 ⑤失败尝试与原因 ⑥未解决问题 ⑦下一步计划。中文≤1500字, 不复述闲聊。' },
+      { role: 'user', content: old.filter(m => m.role !== 'trace').map(m => m.role + ': ' + String(m.content).slice(0, 2000)).join('\n').slice(0, 80000) }] })).trim();
+    if (!sum) return { ok: false, note: '模型未返回, 保留原文不截断' };
+    hist.splice(0, hist.length, { role: 'user', content: '[早先对话的接力摘要]\n' + sum + '\n[原始已归档: ' + archiveKey + ']' }, ...hist.slice(-keep));
+    return { ok: true, note: '已压缩为接力摘要(' + sum.length + '字), 原文在 ' + archiveKey };
+  }
+  const feedContent = c => { // 喂模型的形状: 引用 part 只给一行取货单(字节不进上下文); 真身媒体 part(当轮未归档)原样透传
+    if (!Array.isArray(c)) return c;
+    const refs = c.filter(p => p && p.type === 'ref').map(p => '[附件 ' + (p.kind || '') + ' ' + (p.name || p.addr) + ' → 已存 ' + p.addr + ', 需要时 read "kv:' + p.addr + '" 取]');
+    const text = c.filter(p => p && p.type === 'text' && p.text).map(p => p.text).join('\n');
+    const media = c.filter(p => p && p.data);
+    const t = text + (refs.length ? '\n' + refs.join('\n') : '');
+    return media.length ? [{ type: 'text', text: t }].concat(media) : t;
+  };
+  async function archiveTurnMedia(hist, turnId) { // 当轮真身喂模型, 轮末落盘转引用: 媒体字节与文本附件统一出档进 chatasset(档案只留取货单; 用户正文 part 永不归档)
+    for (const m of hist) {
+      if (m.turnId !== turnId || !Array.isArray(m.content)) continue;
+      for (let i = 0; i < m.content.length; i++) { const p = m.content[i];
+        if (!p || p.type === 'ref' || (p.type === 'text' && !p.att) || !(p.data || p.att)) continue;
+        if (p.addr) { m.content[i] = { type: 'ref', kind: p.type, addr: p.addr, name: p.name, mimeType: p.mimeType, bytes: (p.data || '').length }; continue; } // attach 回灌件: 已有原键, 回引用不重复入库
+        const val = p.data ? { dataUrl: 'data:' + (p.mimeType || 'application/octet-stream') + ';base64,' + p.data, mimeType: p.mimeType, name: p.name }
+          : { text: p.text || '', mimeType: 'text/plain', name: p.name };
+        const id = mkId('ca');
+        try { await ctx.kv.set('chatasset:' + id, val); } catch (e) { continue; }
+        m.content[i] = { type: 'ref', kind: p.att ? 'text' : p.type, addr: 'chatasset:' + id, name: p.name, mimeType: val.mimeType, bytes: (p.data || p.text || '').length };
+      }
+    }
+  }
+  /* 引擎: 生成 v3 形状的事件流 */
+  let _seq = 0, _attachQueue = [];   // attach 回灌队列: read {"attach":1} 收集, 下一轮工具结果消息携带真身
+  const mkId = p => p + Date.now().toString(36) + '_' + (_seq++);
+  function looksStalledIntent(s) { // 光说不做识别: 表达了"即将动手"意图却没发工具围栏(某些弱模型的空转)。保守: 宁漏不误伤真·最终答案
+    const t = String(s || '').trim();
+    if (!t || t.length > 220) return false;   // 长文本多是真答案/真解释
+    if (!/(^|[。;；,，\s])(我?(先|来|现在|接下来|然后|马上|稍后|准备)|让我|我(先|来|去)|下一步)/.test(t)) return false; // 需"即将做"前导
+    if (!/(打开|读取|读一下|查看|查一下|观察|调用|执行|运行|搜索|定位|加载|获取|列出|写入|创建|修改|检查|试试|看看|抓取|访问|read|run|call|snapshot|edit|write)/.test(t)) return false; // 且提到工具动作
+    if (/(完成|已经|结果|如下|答案|总结|发现|结论|失败|错误|无法|不能|抱歉|请你|你想|要不要|[？?])/.test(t)) return false; // 排除结论/求问/道歉(那是真答案)
+    return true;
+  }
+  async function* engine(content, brain, onDelta, hist, opts) {
+    const sid = curSession;
+    const turnId = mkId('t_');   // 本轮身份: 缝合一轮一链 + 按轮裁剪历史
+    _attachQueue = [];   // 清跨轮残留
+    const seed = !!(opts && opts.seed); // 互动模式全能接话: content 是一次性情境引导, 不落盘 → 记录里只留它的回复, 不留"请接话"
+    const persist = () => S.set(chatKey(sid), hist).catch(e => console.warn('[agent] 会话落盘失败(S3悬案留痕):', e));   // 即时落盘; 失败不再无声
+    if (!seed) { hist.push({ role: 'user', content, turnId, ts: _tsNow() }); await persist(); } // ts: 群聊定序锚点
+    // 活 trace: push 一次, 后续原地 Object.assign 更新, onDelta 触发节流重绘
+    let liveTrace = null;
+    const newTrace = (patch) => { const t = Object.assign({ role: 'trace', turnId, traceId: mkId('tr_'), status: 'running', ts: Date.now() }, patch); hist.push(t); liveTrace = t; return t; };
+    const settle = p => { if (liveTrace && liveTrace.status === 'running') Object.assign(liveTrace, p); }; // 收尾活思考行(仅当仍在跑)
+    const drainInterrupts = () => { // 不经 newTrace, 避免抢占 liveTrace; 按来源分装(用户插话显示为提问, 系统回执以[系统]开头不渲染成用户气泡)
+      if (!_interrupts.length) return;
+      for (const x of _interrupts.splice(0)) {
+        const sys = x.startsWith(BG_RECEIPT);
+        hist.push({ role: 'user', content: (sys ? '[系统] 后台结果已到, 据实收尾, 不得编造任何未在回执里的成果或引用: \n' : '[用户中途补充, 请优先参考并据此调整后续行动]\n') + x, turnId });
+        hist.push({ role: 'trace', turnId, traceId: mkId('tr_'), kind: 'note', status: 'done', ok: true, label: sys ? '📮 后台结果并入本轮' : '🧭 收到用户补充', detail: x, ts: Date.now() });
+      }
+    };
+    const think = newTrace({ kind: 'thought', label: '🧠 思考中…' });
+    yield { type: 'turn-start' };
+    const shortThought = s => { // 取首句, 太长再截 — 不硬切半句
+      const t = String(s).replace(/\s+/g, ' ').trim();
+      const i = t.search(/[。！？!?]/);
+      if (i >= 0 && i <= 56) return t.slice(0, i + 1);
+      return t.length > 56 ? t.slice(0, 56) + '…' : t;
+    };
+    const onD = (d, full) => {   // 每个 delta: 更新活 trace 的 label/detail + 驱动 _streamAnswer(流式回答气泡), 然后节流重绘; 不入 hist
+      const i = full.indexOf('```tool');
+      const prose = (i >= 0 ? full.slice(0, i) : full).replace(/```tool[\s\S]*?```/g, '').trim();
+      const last = full.lastIndexOf('```tool');
+      if (last >= 0 && !full.slice(last + 7).includes('```')) { const frag = full.slice(last + 7); const mm = frag.match(/"name"\s*:\s*"(\w+)"[\s\S]*?"target"\s*:\s*"([^"]*)"/);
+        Object.assign(liveTrace, { kind: 'draft', label: (mm && (mm[1] === 'write' || mm[1] === 'edit'))
+          ? ('✍️ 生成' + (mm[1] === 'edit' ? '改动' : '代码') + '… ' + frag.length + ' 字符')
+          : (mm ? ('⚡ 准备 ' + mm[1] + ' ' + mm[2]) : '⚡ 准备动作…') }); }   // 写码字节流: 同一条原地涨
+      else if (prose) Object.assign(liveTrace, { kind: 'thought', label: '🧠 ' + shortThought(prose), detail: prose }); // label 短句即显, detail 存完整供展开
+      else Object.assign(liveTrace, { kind: 'thought', label: '🧠 思考中… (' + full.length + ' 字)' });
+      _streamAnswer = (i < 0 && prose.length >= 28) ? prose : ''; // 无工具块且过阈值→疑似最终回答, 边流边显; 见工具块即撤(短前导<阈值不显, 降低闪烁)
+      if (onDelta) onDelta();
+    };
+    const TOOL_RE = /```tool\s*\n([\s\S]*?)```/g;
+    const TOOL_ALT = /<tool_call>([\s\S]*?)(?:<\/tool_call>|```|$)|```json\s*\n([\s\S]*?)```/g; // 围栏方言(小模型模板泄漏): 只认显式包裹, 不猜裸 JSON(防误执行正文示例)
+    const estTok = s2 => { if (Array.isArray(s2)) return s2.reduce((n, p) => n + (p && p.type === 'text' ? estTok(p.text) : p && p.type === 'ref' ? 40 : 1200), 0); let n = 0; for (const ch of String(s2 || '')) n += ch.charCodeAt(0) > 0x2e7f ? 1 : 0.25; return n; }; // 媒体 part 计 1200(旧版对数组估 0 → 旧图永驻窗口每轮重发)
+    const budget = Number(await ctx.kv.get('settings:agent.ctxBudget')) || 256000;
+    if (hist.length > 20 && hist.filter(m => m.role !== 'trace').reduce((n, m) => n + estTok(m.content), 0) > budget * 0.6) {   // 到限额自动模型压缩(滚动摘要); 失败保留原文
+      const cond = newTrace({ kind: 'tool', name: '_condense', label: '🗜 压缩对话历史(滚动摘要)' });
+      try { const r = await condense(hist, sid, brain); Object.assign(cond, { status: 'done', ok: r.ok, summary: r.note }); }
+      catch (e) { Object.assign(cond, { status: 'error', ok: false, summary: '压缩失败(' + e.message.slice(0, 80) + '), 保留原文不截断' }); }
+      await persist();
+      yield { type: 'paint' };
+      liveTrace = think; hist.push(hist.splice(hist.indexOf(think), 1)[0]);   // 思考行回到末尾继续当活行
+    }
+    let ended = false;   // 标记"本轮已体面收尾"; 循环耗尽/顶部停止等静默退出路径由循环后统一收尾
+    let emptyRetried = false;   // 空补全只重试一次(供应商/网关会话异常时会回空)
+    let stallNudged = false;   // 光说不做只提醒一次: 弱模型描述了动作意图却没发工具围栏时催一次落实, 再犯就当最终答案收尾(不死循环)
+    try {
+      const maxRounds = Number(await ctx.kv.get('settings:agent.maxToolRounds')) || 35;
+      for (let round = 0; round < (_loop ? maxRounds + 60 : maxRounds); round++) {   // 自主循环每个迭代可能用几轮工具, 放宽硬顶; loop 真正的控制是 verify 闸的 maxIters/stagnation
+        if (_stop) break;   // 停止: 不再进入新一轮
+        drainInterrupts();   // 每轮顶端吸收插话(并入上下文+🧭工具链)再构造 msgs
+        if (!_loop && round === maxRounds - 1) hist.push({ role: 'user', content: '[系统] 工具循环将达上限 ' + maxRounds + '。若任务未完, 请把进展写进 task: 台账并告诉我下一步, 我说"继续"即可续接。', turnId });
+        let msgs = [{ role: 'system', content: await buildSystemPrompt() }];
+        { // 上下文预算: 从近到远装载, 极端超额才头尾截断, 每轮报量表
+          let used = estTok(msgs[0].content);
+          const picked = [];
+          for (let i = hist.length - 1; i >= 0; i--) {
+            const m = hist[i];
+            if (m.role === 'trace') continue;
+            const other = m.role === 'member' || m.author != null || m.to != null; // 他方消息: 成员冒泡/成员回复/我点名对成员说
+            let msg;
+            if (other) { // 在场即共享: 他方消息一律转署名 user 进上下文 — 全能 agent 全知, 成员的话对他等同用户消息
+              msg = { role: 'user', content: '[群聊] ' + _dialogAuthor(m) + ': ' + String(m.content).replace(/^\[.+?\] /, '') };
+            } else msg = { role: m.role, content: feedContent(m.content) };
+            const tk = estTok(msg.content);
+            if (picked.length >= 8 && used + tk > budget * 0.8) break;
+            used += tk; picked.unshift(msg);
+          }
+          if (used > budget * 1.1) for (let i = 0; i < Math.max(0, picked.length - 16); i++) {
+            const c = String(picked[i].content || '');
+            if (c.length > 1400) picked[i] = { role: picked[i].role, content: c.slice(0, 400) + ' …[中段省略' + (c.length - 1000) + '字] ' + c.slice(-600) };
+          }
+          msgs = msgs.concat(picked.map(m => ({ role: m.role, content: m.content })));   // 喂模型只要 role/content, 不带 turnId 等内部字段
+          if (seed) msgs.push({ role: 'user', content });   // 互动接话情境(一次性, 不入 hist): 只这一轮引导全能基于群记录接话
+          used = msgs.reduce((n, m) => n + estTok(m.content), 0);
+          const pct = Math.round(used / budget * 100);
+          if (pct >= 50) msgs[0].content += '\n[上下文≈' + pct + '%(估算, 预算可调 settings:agent.ctxBudget)' + (pct >= 70 ? '; 建议: 要点沉淀进 task: 台账或技能后开新会话' : '') + ']';
+          yield { type: 'ctx', used: Math.round(used), budget };
+        }
+        if (!liveTrace || liveTrace.status !== 'running') liveTrace = newTrace({ kind: 'thought', label: '🧠 思考中…' });
+        _turnAbort = new AbortController();
+        let full;
+        try { full = await streamText({ providerId: brain.providerId, model: brain.model, messages: msgs }, onD, _turnAbort.signal); }
+        finally { _turnAbort = null; }
+        if (_stop) {   // 用户点了停止: 收尾思考行、结束本轮(不重规划、不把半截当回答), break → 落盘 + turn-end
+          settle({ status: 'done', ok: true, kind: 'thought', label: '⏹ 已停止', detail: undefined });
+          _streamAnswer = ''; await persist(); yield { type: 'paint' }; break;
+        }
+        if (_interrupts.length) {   // 被插话打断 — 半截不当回答, 收尾思考行+清气泡, continue 到下轮 drain 吸收并重规划
+          settle({ status: 'done', ok: true, kind: 'thought', label: '🧠 收到补充, 调整方向', detail: undefined });
+          _streamAnswer = '';
+          await persist(); yield { type: 'paint' };
+          continue;
+        }
+        if (!String(full || '').trim()) { // 空补全兜底: 重试一次, 仍空则如实告知(不再静默收尾让用户对着空气)
+          if (!emptyRetried) { emptyRetried = true; settle({ status: 'done', ok: false, kind: 'thought', label: '🫥 大脑空回复, 自动重试一次' }); await persist(); yield { type: 'paint' }; continue; }
+          full = '⚠ 大脑连续两次空回复, 本轮没有产出。供应商或网关会话可能异常——建议换个大脑或新开会话再试。';
+        }
+        const aMsg = { role: 'assistant', content: full, turnId, ts: _tsNow() }; // ts: 群聊定序(最终回答进群记录, 工具阶段的下面会标 toolTurn 排除)
+        hist.push(aMsg);
+        await persist();
+        const plain = full.replace(TOOL_RE, '').trim();
+        TOOL_RE.lastIndex = 0;
+        const calls = []; let m;
+        while ((m = TOOL_RE.exec(full))) { const raw = m[1].trim(); if (raw[0] !== '{') continue;
+          try { const p = JSON.parse(raw); if (p && p.name) calls.push(p);
+            else if (p && typeof p === 'object') calls.push({ __err: '工具 JSON 已解析但缺 "name" 键(收到顶层键: ' + Object.keys(p).join('/').slice(0, 60) + '); 正确形状 {"name":"read|write|edit|run","args":{...}}, 请重发' }); }
+          catch (e) { if (/"(name|call|tool|function)"\s*:/.test(raw)) calls.push({ __err: 'tool JSON 解析失败: ' + e.message }); } }
+        if (!calls.length) { // 方言容错: ```tool 没命中才试; name 必须是四原语(双保险防误执行)
+          for (const mm of full.matchAll(TOOL_ALT)) {
+            const seg = mm[1] || mm[2] || '', a = seg.indexOf('{'), b = seg.lastIndexOf('}');
+            if (a < 0 || b <= a) continue;
+            try { const p = JSON.parse(seg.slice(a, b + 1)); if (p && /^(read|write|edit|run)$/.test(p.name)) calls.push(p); } catch (e) { }
+          }
+          if (!calls.length && /"(name|call|tool|function)"\s*:\s*"(read|write|edit|run)"/.test(full)) calls.push({ __err: '疑似工具指令但围栏不合规(未执行)。正确格式是 ```tool 围栏、一栏一个 JSON: ```tool\n{"name":"read","args":{"target":"map"}}\n``` 请照此重发。' });
+        }
+        if (!calls.length) {   // 无工具 = 本轮无更多动作
+          if (_loop) {   // 自主循环闸: 不直接收尾, 先 verify(doneCriteria)→record kv:task:→续轮/停止
+            const tk = (await ctx.kv.get('task:' + _loop.taskId)) || {};
+            tk.iter = (tk.iter || 0) + 1; tk.rounds = tk.rounds || [];
+            const v = await runMatchers(dcOf(tk.doneCriteria), tk.target);
+            let stop = null;
+            const curChecks = dcOf(tk.doneCriteria).length;
+            _loop.maxChecks = Math.max(_loop.maxChecks || 0, curChecks);   // 高水位: 见过的最多判据数
+            if (_loop.target) ctx.kv.set('loopmax:' + _loop.target, _loop.maxChecks).catch(() => { }); // 持久化高水位, 跨循环(哪怕换 taskId)守住判据数
+            const weakened = curChecks < _loop.maxChecks;                   // 判据被删减 = 可能在"改考卷"
+            if (v.passed && weakened) stop = 'doneCriteria_weakened';        // 删判据才过, 不算 done
+            else if (v.passed) stop = 'done';
+            else if (tk.iter >= (tk.maxIters || 8)) stop = 'maxIters';
+            else { _loop.failSig.push(v.missing.join('|')); const f = _loop.failSig, n = f.length; if (n >= 3 && f[n - 1] === f[n - 2] && f[n - 2] === f[n - 3]) stop = 'stagnation'; }
+            tk.rounds.push({ iter: tk.iter, answer: plain.slice(0, 300), verify: v.results, passed: v.passed, stop: stop || null, at: Date.now() });
+            tk.status = stop === 'done' ? 'done' : stop ? 'stopped' : 'running'; if (stop && stop !== 'done') tk.stopReason = stop;
+            await ctx.kv.set('task:' + _loop.taskId, tk);
+            const vt = v.results.map(r => (r.pass ? '✓ ' : '✗ ') + r.type + ': ' + r.evidence).join('\n') || '(doneCriteria 无 checks — 无法机检, 视为 insufficient_observability)';
+            if (!v.results.length && !stop) stop = 'insufficient_observability', tk.status = 'stopped', tk.stopReason = stop, await ctx.kv.set('task:' + _loop.taskId, tk);
+            settle({ status: 'done', ok: !!v.passed, kind: 'thought',
+              label: stop ? ('⏹ 循环停止: ' + stop) : ('🔁 第' + tk.iter + '轮 verify ' + v.results.filter(r => r.pass).length + '/' + v.results.length),
+              detail: vt });
+            if (stop) {
+              const hi = _loop.maxChecks; _loop = null;
+              hist.push({ role: 'user', content:
+                stop === 'done' ? '[自主循环达成 doneCriteria ✓]\n' + vt + '\n现在完成用户最初要求的全部交付物(要贴的台账/复盘/产物等, 一项别漏); 之后若摸出可复用套路, 按 skill 套路-复盘 决定是否 write kv:skill:petri:agent:<名> 沉淀。'
+                : stop === 'doneCriteria_weakened' ? '[未通过: doneCriteria 被删减]\n判据从 ' + hi + ' 条删到 ' + curChecks + ' 条才"过"=改考卷, 不算 done。要么改代码让原判据(含被删那条)真能过; 要么某条判据真写错就停下说理由让用户定, 别自己删。\n' + vt
+                : '[自主循环停止: ' + stop + ']\n' + vt + '\n停下别再改。先完成用户最初要求能交付的部分, 再汇报: 最后证据、当前假设、给我的下一步建议。', turnId });
+            } else {
+              const f = _loop.failSig, rep = f.length >= 2 && f[f.length - 1] === f[f.length - 2]; // 同样的失败再现 = 上轮方向没奏效
+              const nudge = rep ? '⚠ 连续没进展(同样的失败再现)——换一个假设/换个修法或验证角度, 别重复上一轮的改法。\n' : '';
+              hist.push({ role: 'user', content: '[自主循环 第' + tk.iter + '轮未达成, 剩 ' + ((tk.maxIters || 8) - tk.iter) + ' 轮]\n' + vt + '\n' + nudge + '继续: 围绕一个明确假设做最小修改, 改完停下让我验证(别一直调工具)。', turnId });
+            }
+            _streamAnswer = ''; await persist(); yield { type: 'paint' };
+            liveTrace = newTrace({ kind: 'thought', label: '🧠 思考中…' }); continue;
+          }
+          if (!stallNudged && !seed && looksStalledIntent(plain)) {   // 光说不做: 描述了要动手却没发围栏 → 催一次落实(而非静默当最终答案收尾), 一次性
+            stallNudged = true;
+            settle({ status: 'done', ok: false, kind: 'thought', label: '🧠 只说了要做、没发工具 — 提示落实', detail: plain });
+            hist.push({ role: 'user', content: '[系统] 你上一句描述了将要做的操作(像要动手)但没有发出 ```tool 工具围栏, 所以实际什么都没执行。若确实要动手, 现在就发工具围栏(围栏内一栏一个 JSON); 若这已是最终答复, 直接给结论、别再复述计划。', turnId });
+            _streamAnswer = ''; await persist(); yield { type: 'paint' };
+            liveTrace = newTrace({ kind: 'thought', label: '🧠 思考中…' }); continue;
+          }
+          // 无循环 = 最终回答: 思考行收尾(清 detail, 回答归会话气泡, 不在链里重复), 正文成 assistant 气泡
+          settle({ status: 'done', ok: true, kind: 'thought', label: '🧠 思考完成', detail: undefined });
+          _streamAnswer = '';   // 清临时流式气泡, 让持久化的最终 assistant 无缝接管(同一次重绘, 不并存不闪)
+          await persist();
+          ended = true; yield { type: 'final', text: plain }; break;
+        }
+        aMsg.toolTurn = true;   // 这条 assistant 触发了工具 → 属工具阶段; 渲染层据此判定它不是最终回答(引擎事实, 比内容正则可靠)
+        // 有工具: 思考行先收尾(保留 onD 写好的短句 label+完整 detail, 留在链里供回溯), 每个工具一条独立 trace
+        if (liveTrace && liveTrace.kind !== 'tool') settle({ status: 'done', ok: true });
+        // 工具前 prose 已进思考行 label/detail, 不 yield interim 到会话(防重复气泡)
+        const results = [];
+        for (const c of calls) {
+          if (c.__err) {
+            results.push({ error: c.__err });
+            newTrace({ kind: 'tool', name: '?', status: 'error', ok: false, label: '⚠ 指令解析失败', summary: c.__err, args: {} });
+            await persist(); yield { type: 'paint' }; continue;
+          }
+          const tr = newTrace({ kind: 'tool', name: c.name, label: describeToolCall(c), args: c.args }); const started = Date.now();
+          await persist();
+          yield { type: 'paint' };
+          try { const out = await prim(c.name, c.args); results.push({ tool: c.name, result: out });
+            Object.assign(tr, { status: 'done', ok: true, summary: describeToolResult(c.name, out, true),
+              result: typeof out === 'object' ? JSON.stringify(out).slice(0, 4000) : String(out).slice(0, 4000),
+              duration: Date.now() - started }); }
+          catch (e) { results.push({ tool: c.name, error: e.message });
+            Object.assign(tr, { status: 'error', ok: false, summary: '✗ ' + e.message.slice(0, 120), result: e.message, duration: Date.now() - started }); }
+          await persist();
+          yield { type: 'paint', summary: tr.summary, ok: tr.ok };
+          if (_stop) break;   // 停止: 不再起下一个工具
+        }
+        if (_stop) { newTrace({ kind: 'note', status: 'done', ok: true, label: '⏹ 已停止' }); await persist(); ended = true; yield { type: 'paint' }; break; }
+        const fed = '工具结果(继续; 动手前只说一句正在做什么, 最终结论一次说清、不复述过程):\n' + packResults(results);
+        hist.push({ role: 'user', content: !_attachQueue.length ? fed : [{ type: 'text', text: fed }].concat(_attachQueue.splice(0).map(q =>
+          ({ type: 'image', mimeType: (/^data:([^;,]+)/.exec(q.du) || [])[1] || 'image/png', data: q.du.split(',')[1] || '', name: q.name, addr: q.addr }))), turnId });
+        await persist();
+        liveTrace = newTrace({ kind: 'thought', label: '🧠 思考中…' });   // 进入下一轮: 新的活思考行
+      }
+      if (!ended) {   // 循环耗尽(模型最后一轮仍在调工具)或顶部停止退出 — 不再静默掉出, 统一体面收尾
+        settle({ status: 'done', ok: true, kind: 'thought', label: _stop ? '⏹ 已停止' : '⏸ 已达工具轮上限', detail: undefined });
+        if (!_stop) {
+          hist.push({ role: 'assistant', content: '[已达工具轮上限 ' + maxRounds + ', 尚无最终结论。进展见上方工具链与 task: 台账, 说"继续"可续接。]', turnId });
+          _streamAnswer = ''; await persist(); yield { type: 'final', text: '已达工具轮上限, 说"继续"可续接。' };
+        } else { _streamAnswer = ''; await persist(); yield { type: 'paint' }; }
+      }
+    } catch (e) {   // 中途崩不再静默: 变工具链里一条可见红行
+      if (liveTrace && liveTrace.status === 'running') Object.assign(liveTrace, { status: 'error', ok: false, label: (liveTrace.label || '执行') + ' — 中断', summary: '✗ ' + e.message.slice(0, 120) });
+      else newTrace({ kind: 'tool', name: '?', status: 'error', ok: false, label: '✗ 任务中断', summary: e.message.slice(0, 120), args: {} });
+      await persist(); _streamAnswer = ''; yield { type: 'error', message: e.message };
+    } finally {   // 双保险: 任何退出路径都不留 running 活行 — "显示在跑实际已停"的源头治理
+      if (liveTrace && liveTrace.status === 'running') { Object.assign(liveTrace, { status: 'done', ok: false, label: (liveTrace.label || '') + ' — 中断' }); await persist().catch(() => { }); }
+    }
+    // 按轮裁剪: 不按条数 slice(防截断链头), 保留最近 N 轮完整 turn
+    const KEEP_TURNS = 40;
+    const turnsSeen = []; for (let i = hist.length - 1; i >= 0; i--) { const t = hist[i].turnId; if (t && turnsSeen.indexOf(t) < 0) turnsSeen.push(t); }
+    if (turnsSeen.length > KEEP_TURNS) {
+      const keepSet = new Set(turnsSeen.slice(0, KEEP_TURNS));
+      const kept = hist.filter(m => !m.turnId || keepSet.has(m.turnId));
+      hist.splice(0, hist.length, ...kept);
+    }
+    try { await archiveTurnMedia(hist, turnId); } catch (e) { }
+    await persist();   // 终态落盘(含裁剪结果+媒体归档)
+    _streamAnswer = '';
+    yield { type: 'turn-end' };
+  }
+
+  /* ════ dock 骨架 ════ */
+  ctx.root.insertAdjacentHTML('beforeend', [
+    '<div class="agent-dock collapsed dock-bottom" id="agent-dock">',
+    ' <div class="dock-resize-handle" id="dock-resize"></div>',
+    ' <div class="dock-fab-icon" id="dock-fab">💬</div>',
+    ' <div class="fab-speech" id="fab-speech" style="display:none"></div>',
+    ' <div class="fab-steps" id="fab-steps" style="display:none"></div>',
+    ' <div class="agent-dock-bar" id="agent-bar"><div class="ai-icon">A</div><div class="title" id="dock-title">全能 agent</div><div style="flex:1"></div><button class="dock-tool" id="agent-acts" title="任务播报: 收起成气泡时也显示当前步骤(点击开/关)">🫧</button><button class="dock-tool" ' +
+      'id="agent-pos" title="切换位置(底部/右边)">⇋</button><button class="dock-tool" id="agent-clear" title="清空当前会话">🗑</button><button class="dock-tool toggle" id="agent-min" title="收起">▾</button></div>',
+    ' <div class="session-bar" id="session-bar"><button class="sess-current" id="sess-current" title="切换会话"><span id="sess-name">默认会话</span> <span class="sess-caret">▾</span></button><button class="sess-new" id="sess-new" title="新建会话">+ 新会话</button>' +
+      '<button class="sess-new" id="relay-toggle" title="互动模式: 开启后你发消息或@谁, 成员按上方顺序轮流接话到设定次数; 再点关闭。桥不在场不显">🔁 互动</button>' +
+      '<input id="relay-n" type="number" min="1" title="互动接话总次数(轮流几跳后自停)" value="5">' +
+      '<button class="sess-new" id="sess-condense" title="手动压缩对话历史(滚动摘要, 原文无损归档)">🗜</button>' +
+      '<span class="ctx-meter" id="ctx-meter" title="本轮发送给模型的上下文用量(估算) · 预算可调 settings:agent.ctxBudget"></span><div class="sess-dropdown" id="sess-dropdown" style="display:none"></div></div>',
+    ' <div class="chat-members" id="chat-members"></div>',
+    ' <div class="brain-selector" id="brain-selector"></div>',
+    ' <div class="agent-conversation" id="agent-convo"></div>',
+    ' <div id="chat-status" style="display:none;padding:2px 20px;font-size:11px;color:var(--text-muted);font-style:italic"></div>',
+    ' <div class="agent-attachments" id="agent-attachments" style="display:none"></div>',
+    ' <div class="at-row" id="at-row"></div>',
+    ' <div class="agent-input-row"><button id="agent-attach" class="agent-io-btn" title="添加文件/图片">📎</button><button id="agent-voice" class="agent-io-btn" title="点击录音/再点结束">🎤</button><textarea id="agent-input" placeholder="对全能 agent 说话, 可粘贴图片/文件,' +
+      ' 或 @成员点名(上排@键)..."></textarea><button id="agent-send">发送</button><input type="file" id="agent-file-input" multiple style="display:none"></div>',
+    '</div>'].join(''));
+
+  /* ════ dock 行为(位置/尺寸/气泡拖动, 持久化 dock.prefs) ════ */
+  const dock = $('agent-dock');
+  let prefs = { pos: 'bottom', height: 380, width: 420, iconBottom: 24, iconRight: 24 };
+  S.get('dock.prefs').then(p => { if (p) prefs = Object.assign(prefs, p); applyDock(false); });
+  let expanded = false;
+  let stickBottom = true;   // 智能跟随: 在底部才自动滚, 上翻阅读不被强拉
+  ctx.listen($('agent-convo'), 'scroll', () => { const c = $('agent-convo'); stickBottom = c.scrollHeight - c.scrollTop - c.clientHeight < 60; });
+  function chatScroll() { if (stickBottom) $('agent-convo').scrollTop = 1e9; }
+  /* ════ 气泡播报(具身化第一步): 收起时在悬浮球上方说当前步骤; 🫧 可开关(settings 持久化) ════ */
+  let fabSpeech = true; S.get('fabSpeech').then(v => { if (v === false) fabSpeech = false; syncFabBtn(); });
+  let _fabT = null;
+  function fabSay(text, autoHide) {
+    const el = $('fab-speech'); if (!el) return;
+    const fs = $('fab-steps'); if (fs) fs.style.display = 'none';   // 单行播报时收起步骤面板(运行中随后重绘会重新顶上)
+    if (!fabSpeech || expanded) { el.style.display = 'none'; return; }
+    el.textContent = text; el.style.display = 'block';
+    if (_fabT) { clearTimeout(_fabT); _fabT = null; }
+    if (autoHide) _fabT = setTimeout(() => { el.style.display = 'none'; }, 4000);
+  }
+  function renderFabSteps() {   // 收起态: 当前轮工具链步骤显示在悬浮球上方
+    const box = $('fab-steps'); if (!box) return;
+    if (expanded || !fabSpeech || !busy) { box.style.display = 'none'; return; }
+    const H = _histCache; let tid = null;
+    for (let i = H.length - 1; i >= 0; i--) { if (H[i].turnId) { tid = H[i].turnId; break; } }
+    const steps = H.filter(m => m.role === 'trace' && m.turnId === tid).slice(-4);
+    if (!steps.length) { box.style.display = 'none'; return; }
+    box.innerHTML = steps.map(t => '<div class="chain-row ' + statusCls(t)
+      + '"><div class="cr-line"><span class="cr-ic"></span><span class="cr-t">' + esc(t.label || t.name || '…')
+      + '</span></div></div>').join('');
+    box.style.display = 'flex';
+    const sp = $('fab-speech'); if (sp) sp.style.display = 'none';
+  }
+  function syncFabBtn() { const b = $('agent-acts'); if (b) b.style.opacity = fabSpeech ? '1' : '.35'; }
+  ctx.listen($('agent-acts'), 'click', e => {
+    e.stopPropagation(); fabSpeech = !fabSpeech; S.set('fabSpeech', fabSpeech); syncFabBtn();
+    if (!fabSpeech) { const el = $('fab-speech'); if (el) el.style.display = 'none'; const fs = $('fab-steps'); if (fs) fs.style.display = 'none'; }
+    else renderFabSteps();
+  });
+  function applyDock(exp) {
+    expanded = exp;
+    dock.classList.toggle('expanded', exp); dock.classList.toggle('collapsed', !exp);
+    if (exp) { const fs = $('fab-speech'); if (fs) fs.style.display = 'none'; }
+    dock.classList.toggle('dock-bottom', prefs.pos === 'bottom'); dock.classList.toggle('dock-right', prefs.pos === 'right');
+    if (exp) { dock.style.bottom = ''; dock.style.right = ''; dock.style.setProperty('--dock-height', prefs.height + 'px'); dock.style.setProperty('--dock-width', prefs.width + 'px'); }
+    else { dock.style.bottom = prefs.iconBottom + 'px'; dock.style.right = prefs.iconRight + 'px'; }
+    if (exp) { syncGroupUI(); renderMembers(); renderBrain(); renderAtRow(); syncRelayBtn(); }
+    renderFabSteps();
+  }
+  const saveDock = () => S.set('dock.prefs', prefs);
+  $('agent-pos').onclick = e => { e.stopPropagation(); prefs.pos = prefs.pos === 'bottom' ? 'right' : 'bottom'; saveDock(); applyDock(true); };
+  $('agent-min').onclick = e => { e.stopPropagation(); applyDock(false); };
+  $('agent-bar').onclick = e => { if (!e.target.closest('.dock-tool')) applyDock(false); };
+  /* 折叠气泡可拖动(_moved 防误触展开; 拖动期间屏蔽 iframe) */
+  (function initFabDrag() {
+    let sx, sy, sb, sr, moved = false, dragging = false;
+    dock.addEventListener('pointerdown', e => {
+      if (expanded) return;
+      dragging = true; moved = false; sx = e.clientX; sy = e.clientY; sb = prefs.iconBottom; sr = prefs.iconRight;
+      dock.setPointerCapture && dock.setPointerCapture(e.pointerId);
+    });
+    dock.addEventListener('pointermove', e => {
+      if (!dragging || expanded) return;
+      const dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+      moved = true; dock.classList.add('dragging'); document.body.classList.add('ad-dock-dragging');
+      prefs.iconRight = Math.max(4, sr - dx); prefs.iconBottom = Math.max(4, sb - dy);
+      dock.style.right = prefs.iconRight + 'px'; dock.style.bottom = prefs.iconBottom + 'px';
+    });
+    dock.addEventListener('pointerup', () => {
+      if (!dragging) return; dragging = false;
+      dock.classList.remove('dragging'); document.body.classList.remove('ad-dock-dragging');
+      if (moved) saveDock(); else if (!expanded) applyDock(true);
+    });
+    ctx.css('body.ad-dock-dragging iframe{pointer-events:none}');
+  })();
+  /* 展开态拖拽调整大小 */
+  (function initResize() {
+    const h = $('dock-resize'); let sy, sx, sh, sw, on = false;
+    h.addEventListener('pointerdown', e => {
+      on = true; sy = e.clientY; sx = e.clientX; sh = prefs.height; sw = prefs.width;
+      h.setPointerCapture && h.setPointerCapture(e.pointerId);
+      e.preventDefault(); document.body.classList.add('ad-dock-dragging');
+    });
+    h.addEventListener('pointermove', e => {
+      if (!on) return;
+      if (prefs.pos === 'bottom') { prefs.height = Math.min(Math.max(220, sh + (sy - e.clientY)), window.innerHeight - 80); dock.style.setProperty('--dock-height', prefs.height + 'px'); }
+      else { prefs.width = Math.min(Math.max(320, sw + (sx - e.clientX)), window.innerWidth - 80); dock.style.setProperty('--dock-width', prefs.width + 'px'); }
+    });
+    h.addEventListener('pointerup', () => { if (on) { on = false; document.body.classList.remove('ad-dock-dragging'); saveDock(); } });
+  })();
+
+  /* ── 群聊状态(在场即共享)与瞬态状态行: renderTranscript/renderMembers/send 共用, 须先于它们声明 ── */
+  let lockTarget = null; // 双击@键锁定连聊: 之后每条直达他, 再双击解锁(页内瞬态, 不持久)
+  let _statusTimer = null;
+  function dockStatus(text) { // 瞬时状态行(打字中/处理中), 非消息: 自动消隐, 不进档案
+    const el = $('chat-status'); if (!el) return;
+    el.textContent = text || ''; el.style.display = text ? '' : 'none';
+    if (_statusTimer) clearTimeout(_statusTimer);
+    if (text) _statusTimer = setTimeout(() => { el.style.display = 'none'; }, 10000);
+  }
+  const _inputPlaceholder = () => $('agent-input').placeholder = lockTarget ? '连聊「' + lockTarget.name + '」中, 每条都发给他(双击其@键解锁)…'
+    : ('对全能 agent 说话, 可粘贴图片/文件' + (bridge() ? ', 或 @成员点名(上排@键)' : '') + '...');
+  /* ── 群聊 UI 是桥带来的(功能随块): 桥不在场 dock 降级为纯全能 agent 对话——标题去"群聊"、隐成员行(@键行/互动按钮各自已判空自隐) ── */
+  function syncGroupUI() {
+    const hasBridge = !!bridge();
+    const t = $('dock-title'); if (t) t.textContent = hasBridge ? '群聊 · 全能 agent' : '全能 agent';
+    const mrow = $('chat-members'); if (mrow) mrow.style.display = hasBridge ? '' : 'none';
+    _inputPlaceholder();
+  }
+
+  /* ── 群聊(语义归桥): 参与名单/已读游标/@解析/delta 组装都在桥块 Agent.Group, 本块只做 dock 薄接线 —
+     喂它房间记录(_roomEntries 把会话档归一成 {ts,who,content,self})、展示它给的增量结果。桥不在场=无群聊(@键行/胶囊开关不显)。
+     全能 agent 与桥完全解耦: 成员消息进会话档后对引擎等同用户消息(转署名 user), 上下文压缩/新会话逻辑零改动。 ── */
+  const _dialogAuthor = m => (m.role === 'user' && m.to != null) ? ('群主 → ' + (m.toName || '?')) : (m.role === 'user' ? '群主' : (m.authorName || '全能 agent'));
+  const _tsNow = () => Date.now(); // ts=群聊定序锚(游标制的已读刻度), 打点集中
+  const _roomEntries = selfId => _histCache.map(m => { // 会话档 → 归一房间记录(给桥 takeDelta); 无 ts 的不进增量(游标无从定位)
+    if (m.role === 'trace' || m.toolTurn) return null;
+    if (m.role === 'user') { const t = String(_txt(m.content)); return /^(工具结果|\[系统\]|\[自主循环|\[用户中途补充)/.test(t) ? null : { ts: m.ts, who: '用户', content: t, self: false }; }
+    if (m.role === 'member' || (m.role === 'assistant' && m.author != null)) return { ts: m.ts, who: m.authorName || '成员', content: String(_txt(m.content)).replace(/^\[.+?\] /, ''), self: m.author === selfId };
+    if (m.role === 'assistant') { const p = String(_txt(m.content)).replace(/```tool[\s\S]*?```/g, '').trim(); return p ? { ts: m.ts, who: '全能 agent', content: p, self: false } : null; }
+    return null;
+  }).filter(e => e && e.ts && e.content);
+
+  /* 问一位成员(游标制): 桥算增量(只给他没见过的) → 流式展示 → 送达 markSeen(失败不动游标, 重问不丢话) → 回复入档按成员署名 */
+  /* 会话档单条追加: 当前会话走内存 _histCache 同步 push(消除"各自 S.get 拿旧基线→并发覆盖丢消息"), 非当前会话(切走)才读存储写 */
+  async function appendHist(sc, entry) {
+    if (sc === curSession) { _histCache.push(entry); await S.set(chatKey(sc), _histCache.slice(-200)); return; }
+    const h = await S.get(chatKey(sc), []); h.push(entry); await S.set(chatKey(sc), h.slice(-200));
+  }
+  async function askMember(target, sc) { // sc=发起会话(互动/切会话下与 curSession 解绑, 不串味); 返回是否真发言(供互动跳过沉默)
+    sc = sc || curSession;
+    const gen = _clearGen; // 本次发言世代: 期间发生全清则作废(不 markSeen/不入档)
+    const br = bridge();
+    const el = appendMsg(target.name, '…', 'assistant');
+    const d = br.takeDelta(sc, target.id, _roomEntries(target.id));
+    if (!d.count) { el.querySelector('.msg-body').textContent = '(没有他未读的新消息, 未发送)'; return false; }
+    let acc = '', ok = false, cut = false;
+    try {
+      for await (const ev of br.chatWithMember(target.bridgeId, target.id, d.text, { scope: sc })) {
+        if (_stop) { cut = true; break; } // 停止/全清: 掐断当前成员流(与引擎同款可停)
+        if (ev.delta) { acc += ev.delta; el.querySelector('.msg-body').textContent = acc; chatScroll(); }
+      }
+      ok = true;
+      if (!acc) el.querySelector('.msg-body').textContent = '(对方没有回复内容)';
+    } catch (e) { el.querySelector('.msg-body').textContent = (acc ? acc + '\n' : '') + '✗ ' + e.message; }
+    if (cut || gen !== _clearGen) return false; // 被打断/期间全清: 半句丢弃, 不 markSeen(重问不丢上文)、不入档(全清后不留残条)
+    if (ok || acc) br.markSeen(sc, target.id, d.upTo);
+    if (acc) { try { await appendHist(sc, { role: 'assistant', content: '[' + target.name + '] ' + acc, author: target.id, authorName: target.name, ts: _tsNow() }); } catch (e) { } }
+    return !!acc;
+  }
+  /* 用户点名一位成员: 用户消息先入档(房间事实先行, delta 才拿得到这条) → askMember */
+  async function sendToMember(target, text) {
+    try { await appendHist(curSession, { role: 'user', content: text, to: target.id, toName: target.name, ts: _tsNow() }); } catch (e) { }
+    appendMsg('你 → ' + target.name, text, 'user');
+    await askMember(target);
+    await renderTranscript(true);
+    idle();
+    maybeRelay(); // @某人后, 互动开着则从这位之后按序轮流接话
+  }
+
+  /* ════ 多会话(chat.sessions / chat.currentSession / chat.transcript.<sid>) ════ */
+  let sessions = [{ id: 'main', name: '默认会话' }], curSession = 'main';
+  const chatKey = sid => 'chat.transcript.' + sid;
+  async function loadSessions() {
+    sessions = await S.get('chat.sessions', sessions);
+    curSession = await S.get('chat.currentSession', 'main');
+    if (!sessions.find(s => s.id === curSession)) curSession = sessions[0].id;
+    $('sess-name').textContent = (sessions.find(s => s.id === curSession) || {}).name || '默认会话';
+    try {   // 启动兜底: 上次会话遗留的 running 活行统一标记中断 — 无论何种停摆根因, 重开后绝不谎称在跑
+      const hist = await S.get(chatKey(curSession), []);
+      let dirty = false;
+      for (const m of hist) if (m && m.role === 'trace' && m.status === 'running') { m.status = 'error'; m.ok = false; m.label = (m.label || '') + ' — ⚠ 上次会话中断'; dirty = true; }
+      if (dirty) await S.set(chatKey(curSession), hist);
+    } catch (e) { }
+    lockTarget = null; _inputPlaceholder(); // 锁定连聊是会话内瞬态, 切会话即解
+    // 互动状态按 scope 归桥, 切会话自然读新会话的(无需手动重置); 运行中的循环绑定发起时 scope, 切走自然收尾
+    try { syncGroupUI(); renderAtRow(); syncRelayBtn(); } catch (e) { }
+    await renderTranscript(true);
+  }
+  const saveSessions = () => Promise.all([S.set('chat.sessions', sessions), S.set('chat.currentSession', curSession)]);
+  let _histCache = [];   // 内存镜像: engine push, 重绘读它
+  let _streamAnswer = ''; // 最终回答的临时流式气泡(单份)。onD 边流边填, 见工具块即清, 最终轮交持久化前清 → 永不与正式并存
+  let _streamEl = null;  // 流式气泡的 .msg-body 引用: 纯文字增量走快path原地更新, 不整列重建(重建=媒体高度反复塌陷=抖)
+  let _interrupts = [];   // 运行中插话队列。busy 时 send 入队, engine 每轮顶端 drainInterrupts 吸收
+  let _stop = false;      // 停止当前轮: 运行中工具链头⏹按钮置位, engine 在各安全点 break(防失控长跑)
+  let _turnAbort = null;  // 当前轮流式请求的取消器: 停止/插话即时掐断 fetch/reader, 不等下一个 chunk
+  let _loop = null;       // 自主循环激活态 {taskId, failSig:[]}; 非空时引擎在"无工具=最终回答"闸跑 verify→record→续轮/停止
+  const _txt = c => typeof c === 'string' ? c : ((Array.isArray(c) ? (c.find(p => p.type === 'text') || {}).text : '') || '[附件]');
+  let _chainSeq = 0;   // 链序号(记展开态)
+  const _chainOpen = {};
+  function requestStop(btn) { if (!busy || _stop) return; _stop = true; if (_turnAbort) { try { _turnAbort.abort(); } catch (e) {} } if (btn) { btn.textContent = '⏹…'; btn.disabled = true; } } // 置位 + 立即掐断当前流式请求, engine 在各安全点收尾结束本轮
+  function makeChain(traces, running) {   // 折叠链: 头部 + body 收纳 trace 行
+    const key = 'c' + (_chainSeq++);
+    const open = running ? true : (_chainOpen[key] === true);
+    const box = document.createElement('div'); box.className = 'agent-chain' + (open ? ' open' : '');
+    const bad = traces.some(t => statusOf(t) === 'error');
+    const stat = running ? '进行中' : (bad ? '有失败' : '已完成');
+    const head = running ? '<button class="chain-stop" title="停止当前任务(取消本轮, 防失控)">⏹</button>' : '<span class="chain-ic">⛓</span>';
+    box.innerHTML = '<div class="chain-head">' + head
+      + '<span class="chain-ttl">工具链</span><span class="chain-n">' + traces.length + ' 步 · ' + stat
+      + '</span><span class="chain-tg">▾</span></div><div class="chain-body"></div>';
+    box.querySelector('.chain-head').onclick = () => { box.classList.toggle('open'); _chainOpen[key] = box.classList.contains('open'); };
+    if (running) { const sb = box.querySelector('.chain-stop'); if (sb) sb.onclick = e => { e.stopPropagation(); requestStop(sb); }; }
+    const body = box.querySelector('.chain-body');
+    traces.forEach(t => body.appendChild(traceRowEl(t)));
+    return box;
+  }
+  async function renderTranscript(reload) {
+    if (reload) _histCache = await S.get(chatKey(curSession), []);
+    const conv = $('agent-convo'); conv.innerHTML = ''; _chainSeq = 0;
+    // 一轮一链(按 turnId 缝合): 提问气泡→工具链折叠→最终回答(该轮最后一条非 toolTurn 的 assistant, 剥工具块)。
+    // 在场即共享: 房间记录全量展示, 无过滤视图
+    const H = _histCache;
+    const n = H.length;
+    const isPrompt = m => m.role === 'user' && !String(_txt(m.content)).startsWith('工具结果') && !String(_txt(m.content)).startsWith('[系统]');
+    const proseOf = m => String(m.content).replace(/```tool[\s\S]*?```/g, '').trim();
+    const emitChain = tr => { if (tr.length) conv.appendChild(makeChain(tr, tr.some(t => statusOf(t) === 'running'))); };
+    let i = 0;
+    while (i < n) {
+      const tid = H[i].turnId;
+      if (tid) {
+        let userMsg = null, lastAssist = null; const traces = []; let j = i;
+        for (; j < n && H[j].turnId === tid; j++) { const x = H[j];
+          if (x.role === 'trace') traces.push(x);
+          else if (isPrompt(x)) { if (userMsg == null) userMsg = x; }
+          else if (x.role === 'assistant' && !x.toolTurn) lastAssist = x; // 最终回答=该轮最后一条【未触发工具】的assistant; 工具阶段过渡(toolTurn)不进会话
+        }
+        if (userMsg != null) appendUserMsg(userMsg);
+        emitChain(traces);
+        const answer = lastAssist ? proseOf(lastAssist) : '';
+        if (answer) appendMsg('全能 agent', answer, 'assistant');
+        i = j;
+      } else { const m = H[i++];
+        if (m.role === 'member') appendMsg(m.authorName || 'bridge agent', _txt(m.content), 'member');
+        else if (isPrompt(m)) appendUserMsg(m);
+        else if (m.role === 'assistant') { // 成员回复(author 字段)按成员署名, 其余才是全能 agent
+          const nm = m.authorName; const p = proseOf(m);
+          if (p) appendMsg(nm || '全能 agent', nm ? p.replace(/^\[.+?\] /, '') : p, 'assistant');
+        }
+      }
+    }
+    _streamEl = _streamAnswer ? appendMsg('全能 agent', _streamAnswer, 'assistant').querySelector('.msg-body') : null; // 流式期间的临时回答气泡; 当前轮持久 assistant 尚未入 hist, 不会与正式并存; 引用留给快path原地更新
+    chatScroll();
+    renderFabSteps();   // 驱动收起态步骤面板(展开/非busy 自隐)
+  }
+  function toggleSessDrop(show) {
+    const dd = $('sess-dropdown');
+    if (show === undefined) show = dd.style.display === 'none';
+    dd.style.display = show ? '' : 'none';
+    if (!show) return;
+    dd.innerHTML = '';
+    for (const s of sessions) {
+      const it = document.createElement('div'); it.className = 'sess-item' + (s.id === curSession ? ' active' : '');
+      it.innerHTML = '<span class="sess-item-name">' + esc(s.name)
+        + '</span><span class="sess-item-acts"><button data-a="ren" title="重命名">✏</button>'
+        + (sessions.length > 1 ? '<button data-a="del" title="删除">🗑</button>' : '') + '</span>';
+      it.onclick = async e => {
+        const a = e.target.dataset && e.target.dataset.a;
+        if (a === 'ren') {
+          const n = prompt('会话名', s.name);
+          if (n) { s.name = n; await saveSessions(); $('sess-name').textContent = (sessions.find(x => x.id === curSession) || {}).name || ''; }
+          toggleSessDrop(true); return;
+        }
+        if (a === 'del') {
+          if (!confirm('删除会话「' + s.name + '」及其记录?')) return;
+          sessions = sessions.filter(x => x.id !== s.id); await S.del(chatKey(s.id));
+          try { const b2 = bridge(); if (b2 && b2.resetMemberContext) { await b2.resetMemberContext({ scope: s.id }); if (b2.dropGroupScope) await b2.dropGroupScope(s.id); } } catch (e2) { } // 该会话域的成员服务端会话+群聊参与/游标一并回收
+          if (curSession === s.id) curSession = sessions[0].id;
+          await saveSessions(); await loadSessions(); toggleSessDrop(false); return;
+        }
+        curSession = s.id; await saveSessions(); await loadSessions(); toggleSessDrop(false);
+      };
+      dd.appendChild(it);
+    }
+  }
+  $('sess-current').onclick = e => { e.stopPropagation(); toggleSessDrop(); };
+  $('sess-condense').onclick = async e => { // 手动压缩(🗜): 与引擎被动压缩共用 condense; busy 时不抢档
+    e.stopPropagation(); if (busy) return dockStatus('任务进行中, 结束后再压缩');
+    const brain = await S.get('agent.brain', {});
+    if (!brain.providerId) return dockStatus('无大脑, 无法生成摘要');
+    dockStatus('🗜 压缩中…');
+    try {
+      _histCache = await S.get(chatKey(curSession), []);
+      const r = await condense(_histCache, curSession, brain);
+      if (r.ok) { await S.set(chatKey(curSession), _histCache); await renderTranscript(); }
+      dockStatus(r.note);
+    } catch (e2) { dockStatus('压缩失败: ' + e2.message.slice(0, 60)); }
+  };
+  $('sess-new').onclick = async e => {
+    e.stopPropagation();
+    const name = prompt('新会话名', '会话 ' + (sessions.length + 1)); if (!name) return;
+    const s = { id: 's' + Date.now().toString(36), name }; sessions.push(s); curSession = s.id;
+    await saveSessions(); await loadSessions();
+  };
+  $('agent-clear').onclick = async e => { // 一键全清: 当前会话记录+已读游标归零+全部成员会话轮换
+    e.stopPropagation();
+    if (!confirm('清空当前会话的对话记录与全部成员记忆?')) return;
+    const br = bridge();
+    _clearGen++; // 作废所有在途成员发言的写入(慢成员流收尾时发现世代变了会自行丢弃, 不必等它)
+    if (_relayRunning) { _stop = true; if (br && br.relayEnd) await br.relayEnd(curSession); _stop = false; } // 停互动循环(在途那跳的写已被世代作废)
+    _histCache.length = 0; await S.set(chatKey(curSession), []); ttsCache = {}; // 清内存镜像+存储
+    if (br && br.resetMemberContext) { try { await br.resetMemberContext({ scope: curSession }); } catch (e2) { } }
+    await renderTranscript(true); syncRelayBtn(); // 主动刷互动按钮(全清停了互动, 不等慢成员流收尾)
+  };
+
+  /* ════ 群聊成员胶囊(内置 + bridge 在线成员): 点击=参与/退出群聊; 全能 agent 常驻不可退 — 与独立页同一交互 ════ */
+  async function renderMembers() {
+    const row = $('chat-members'); row.innerHTML = '';
+    const br = bridge();
+    if (!br) return; // 桥不在场=无群聊, 成员行整体不显(孤儿降级为纯 agent 对话)
+    const members = [{ name: '全能 agent', builtin: true }];
+    try { members.push(...(await br.allOnlineMembers()).map(m => ({ name: m.name, bridgeId: m.bridgeId, memberId: m.id, online: m.online, kind: m.kind, webhook: m.webhook }))); } catch (e) { }
+    for (const m of members) {
+      const local = m.kind === 'endpoint';  // 端点成员=本机(插件直连); 其余=经桥接入的云端成员
+      const off = m.online === false;
+      const chip = document.createElement('span'); chip.className = 'chat-member' + (m.builtin ? ' builtin' : (off ? ' offline' : ''));
+      chip.style.cursor = 'pointer';
+      chip.innerHTML = '<span class="dot"></span>' + (m.builtin ? '' : (local ? '🖥 ' : '☁ ')) + esc(m.name);
+      const inG = m.builtin || !br || !br.inGroup || br.inGroup(curSession, m.memberId);
+      if (!inG) chip.style.opacity = '.38';
+      chip.title = m.builtin ? '全能 agent 常驻群聊(无@的消息都归他答, 互动模式发言序固定第一)'
+        : (local ? '本机 agent' : '云端 agent') + (off ? (m.webhook ? ' · 离线, 留言即唤醒' : ' · 离线') : ' · 在线')
+          + ' · ' + (inG ? '在群聊中, 点击退出(不参与@所有人/互动) · 可左右拖动调发言序' : '已退出群聊, 点击拉回');
+      chip.onclick = async () => {
+        if (m.builtin || !br || !br.toggleMember) return;
+        await br.toggleMember(curSession, m.memberId);
+        if (lockTarget && lockTarget.id === m.memberId && !br.inGroup(curSession, m.memberId)) { lockTarget = null; _inputPlaceholder(); }
+        renderMembers(); renderAtRow();
+      };
+      if (!m.builtin && inG && br && br.setOrder) { // 拖动排序: 全能固定第一不可拖; 拖完把当前在群成员的 DOM 序落盘
+        chip.draggable = true;
+        chip.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain', m.memberId); chip.style.opacity = '.4'; });
+        chip.addEventListener('dragend', () => { chip.style.opacity = inG ? '1' : '.38'; });
+        chip.addEventListener('dragover', e => e.preventDefault());
+        chip.addEventListener('drop', async e => {
+          e.preventDefault(); const dragId = e.dataTransfer.getData('text/plain'); if (!dragId || dragId === m.memberId) return;
+          const dragged = row.querySelector('[data-mid="' + dragId + '"]'); if (!dragged) return;
+          row.insertBefore(dragged, chip); // 落在目标胶囊前
+          const ids = [...row.querySelectorAll('[data-mid]')].map(c => c.getAttribute('data-mid'));
+          await br.setOrder(curSession, ids); renderAtRow();
+        });
+        chip.setAttribute('data-mid', m.memberId);
+      }
+      row.appendChild(chip);
+    }
+  }
+  /* ════ @快捷键行: 只列参与成员+@所有人; 单击插@名, 双击锁定连聊; 没有@全能键 — 无@默认就是对他说 ════ */
+  async function renderAtRow() {
+    const row = $('at-row'); if (!row) return;
+    const br = bridge(); row.innerHTML = '';
+    const ps = (br && br.participants) ? br.participants(curSession) : [];
+    if (!ps.length) { row.style.display = 'none'; if (lockTarget) { lockTarget = null; _inputPlaceholder(); } return; } // 桥不在场/无参与成员=不显(孤儿可活)
+    row.style.display = 'flex';
+    if (lockTarget && !ps.find(m => m.id === lockTarget.id)) { lockTarget = null; _inputPlaceholder(); } // 锁定对象退群/下线即解锁
+    for (const m of ps) {
+      const b = document.createElement('button'); b.className = 'at-key' + (lockTarget && lockTarget.id === m.id ? ' lock' : '');
+      b.textContent = '@' + m.name; b.title = lockTarget && lockTarget.id === m.id ? '已锁定连聊 — 双击解锁' : '单击: 插入@点名 · 双击: 锁定连聊(每条都发给他)';
+      b.onclick = () => { const inp = $('agent-input'); inp.value += '@' + m.name + ' '; inp.focus(); };
+      b.ondblclick = () => { // 双击前浏览器已派发两次单击 → 先撤掉刚插的 @名 再切锁
+        const inp = $('agent-input');
+        inp.value = inp.value.replace(new RegExp('(@' + m.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + ' ){1,2}$'), '');
+        lockTarget = (lockTarget && lockTarget.id === m.id) ? null : { bridgeId: m.bridgeId, id: m.id, name: m.name };
+        _inputPlaceholder(); renderAtRow(); inp.focus();
+      };
+      row.appendChild(b);
+    }
+    const all = document.createElement('button'); all.className = 'at-key'; all.textContent = '@所有人'; all.title = '全能 agent 先答, 参与成员随后按顺序各答一轮(后答的看得到先答的)';
+    all.onclick = () => { const inp = $('agent-input'); inp.value += '@所有人 '; inp.focus(); };
+    row.appendChild(all);
+  }
+  ctx.css('.at-row{display:none;gap:6px;flex-wrap:wrap;padding:4px 14px 0}'
+    + '.at-key{font-size:11px;padding:2px 9px;border-radius:10px;border:1px solid var(--border);background:var(--surface);color:var(--text-muted);cursor:pointer}'
+    + '.at-key.lock{border-color:var(--accent);color:var(--accent)}'
+    + '#relay-n{width:34px;font:inherit;font-size:11px;text-align:center;border:1px solid var(--border);border-radius:6px;background:var(--surface);color:var(--text);margin-left:2px}'
+    + '.chat-member[data-mid]{cursor:grab}'
+    + '.chat-member.offline .dot{background:var(--text-muted)}');  // 离线=灰点(基础 .dot 硬编码 accent, 曾致所有成员恒绿)
+  ctx.on('bridge:members-changed', () => { if (expanded) { syncGroupUI(); renderMembers(); renderAtRow(); } });
+
+  /* ════ 互动模式(状态/次数/发言序/轮转都归桥 Group; 本块只留 running 瞬态 + 执行发言 + UI) ════
+     桥不在场=无群聊(按钮自隐)。发言执行: 全能跑本块引擎(relayFullTurn), 成员流式展示(askMember) —— 碰引擎/DOM/会话档, 架构上必须在本块。 */
+  let _relayRunning = false, _clearGen = 0; // _relayRunning: 是否在跑互动循环; _clearGen: 全清递增, 作废在途成员发言的写入(不必等慢成员流收尾)
+  const _relayInfo = () => { const br = bridge(); return (br && br.relayInfo) ? br.relayInfo(curSession) : { on: false, count: 0, limit: 5 }; };
+  function syncRelayBtn() {
+    const b = $('relay-toggle'); if (!b) return;
+    const br = bridge();
+    if (!br || !br.relayInfo) { b.style.display = 'none'; const n = $('relay-n'); if (n) n.style.display = 'none'; return; } // 桥不在场=无群聊(功能随块)
+    const info = _relayInfo();
+    b.style.display = ''; const n = $('relay-n'); if (n) { n.style.display = ''; if (document.activeElement !== n) n.value = info.limit; }
+    b.textContent = info.on ? ('🔁 互动中 ' + info.count + '/' + info.limit) : '🔁 互动';
+    b.style.color = info.on ? 'var(--accent)' : '';
+  }
+  $('relay-toggle').onclick = async e => { // 开/关归桥(状态随桥), 状态全交给按钮倒计数
+    e.stopPropagation(); const br = bridge(); if (!br || !br.relayToggle) return;
+    await br.relayToggle(curSession); syncRelayBtn();
+  };
+  ctx.listen($('relay-n'), 'change', async () => { const br = bridge(); if (!br || !br.relaySetLimit) return; const v = await br.relaySetLimit($('relay-n').value); $('relay-n').value = v; syncRelayBtn(); });
+  function relayLastSpeaker() { // 最近发言者 id(全能=__builtin__): 读本块会话档(房间记录数据持有方), 供桥轮转找下一位; 自愈: 每跳从记录重新推断
+    for (let i = _histCache.length - 1; i >= 0; i--) {
+      const m = _histCache[i];
+      if (m.role === 'member' || (m.role === 'assistant' && m.author != null)) return m.author;
+      if (m.role === 'assistant' && m.turnId && !m.toolTurn) return '__builtin__';
+    }
+    return null;
+  }
+  const paintCtx = ev => { const el = $('ctx-meter'); if (el) el.textContent = (ev.used / 1000).toFixed(1) + 'k / ' + Math.round(ev.budget / 1000) + 'k · ' + Math.round(ev.used / ev.budget * 100) + '%'; };   // 上下文量表(互动/发送共用)
+  const BG_RECEIPT = '[后台工作流回执]';   // 注入嗅探与构造共源(字符串协议别再各写各的)
+  const mkPainter = () => {   // 刀21 流式节流三件套(send/互动接话共用一份, 别各写各的): 纯文字增量走快path只长流式气泡; 其余≤50ms一次全量重绘; 结构性事件 flush 即时
+    const W = e => console.warn('[agent] 重绘出错(不中断):', e);
+    const doPaint = () => { try { const r = renderTranscript(); if (r && r.catch) r.catch(W); } catch (e) { W(e); } };   // 隔离: 重绘崩不中断 engine 迭代器
+    let t = 0, pend = null;
+    const live = () => {
+      if (_streamAnswer && _streamEl && _streamEl.isConnected) { _streamEl.textContent = _streamAnswer; chatScroll(); return; } // 快path: 整列重建会让媒体槽位高度塌陷重排=剧烈抖动
+      const now = Date.now(), gap = now - t;
+      if (gap >= 50) { t = now; doPaint(); }
+      else if (!pend) pend = setTimeout(() => { pend = null; t = Date.now(); doPaint(); }, 50 - gap);
+    };
+    const flush = () => { if (pend) { clearTimeout(pend); pend = null; } t = Date.now(); doPaint(); };
+    return { live, flush };
+  };
+  async function relayFullTurn() { // 全能接话一轮: 引擎 seed 模式(情境引导不落盘, 只留它的回复); 返回是否发言
+    let brain = await S.get('agent.brain', {});
+    if (!brain.providerId) return false; // 全能无大脑: 静默跳过本跳(成员继续轮)
+    const seedText = '[群聊互动] 大家在群里聊天, 请你基于上面的对话自然地接一句话(简洁、有内容、别重复别人已经说过的, 别用工具)。';
+    const p = mkPainter();   // 刀21 补齐: 接话流式也走节流+快path, 不再逐 token 全量重绘
+    for await (const ev of engine(seedText, brain, () => p.live(), _histCache, { seed: true })) {
+      if (ev.type === 'ctx') paintCtx(ev);
+    }
+    p.flush();
+    return true;
+  }
+  function maybeRelay() { if (_relayInfo().on && !_relayRunning && !_stop) relayLoop(); } // 每次用户触发的回应完成后调; 已在跑不重入
+  async function relayLoop() { // 循环执行(桥给状态与"下一位", 本块只执行发言+UI)
+    const br = bridge(); if (!br || !br.relayNext) return;
+    const sc = curSession; // 绑定发起时会话: 中途切会话则收束(不串味)
+    const info = () => br.relayInfo(sc);
+    _relayRunning = true; busy = true; $('agent-send').textContent = '插话'; syncRelayBtn();
+    try {
+      let lastId = relayLastSpeaker(), dry = 0; // 本地维护发言者游标(每跳前移, 不靠记录推断→沉默成员不再卡住轮转)
+      while (info().on && !_stop && curSession === sc && info().count < info().limit) {
+        const next = br.relayNext(sc, lastId, true); // 桥算下一位(dock 含全能占位)
+        if (!next) break; // 只有全能没成员=没人可轮, 静默停(按钮复位即表达)
+        lastId = next.builtin ? '__builtin__' : next.id; // 前移: 沉默也跳过它, 不重复解析同一位
+        const spoke = next.builtin ? await relayFullTurn() : await askMember(next, sc);
+        if (spoke) { await br.relayBump(sc); dry = 0; } // 真发言才计数(limit=接话次数); 沉默不计
+        else if (++dry >= br.participants(sc).length + 1) break; // 转满一圈无人发言(全员无未读)=兜底停, 防空转
+        syncRelayBtn();
+        await renderTranscript(true);
+      }
+    } catch (e) { appendMsg('系统', '互动出错: ' + e.message, 'assistant'); } // 出错才留一条(无 spinner), 正常停不插横批
+    _relayRunning = false; idle();
+    if (_stop || info().count >= info().limit) await br.relayEnd(sc); // 停止/到数: 静默收束
+    syncRelayBtn();
+  }
+  async function relayInterject(text) { // 互动运行中用户插嘴: 计数清零(归桥), 消息进群记录(内存 push 防并发覆盖), 循环续跑(下一位看得到)
+    const br = bridge(); if (br && br.relayResetCount) await br.relayResetCount(curSession); syncRelayBtn();
+    try { await appendHist(curSession, { role: 'user', content: text, ts: _tsNow() }); } catch (e) { }
+    appendMsg('你', text, 'user');
+  }
+  ctx.on('bridge:message', async m => { // 远程 agent 主动冒泡 / 工具轨迹 / 打字中 → 进 dock
+    if (!m) return;
+    if (m.role === 'status') { dockStatus(((m.from || '') + ' ' + (m.content || '')).trim()); return; } // 打字中是瞬态, 不是消息(治"⋯正在输入"变永久气泡)
+    if (m.role === 'tool-trace') { appendStep(m.content || ''); return; }
+    dockStatus('');
+    appendMsg(m.from || 'bridge agent', m.content || '', 'member');
+    try { // 冒泡入档案(带作者字段): 必须经 appendHist 进内存镜像 — 旁路直写在 busy 期间会被引擎 persist(_histCache) 覆盖(入库后又消失)
+      await appendHist(curSession, { role: 'member', author: m.agentKey || m.from, authorName: m.from || 'bridge agent', content: m.content || '', ts: _tsNow() });
+    } catch (e) { }
+  });
+
+  /* ════ 兜底大脑(LLMLite)配置行: petri:ai 不在岗时的最低限度配置面(colony 与独立穿衣通用) ════ */
+  async function renderLiteBrain(box) {
+    const c = await Lite.cfg();
+    const on = !!(c.endpoint && c.key);
+    box.innerHTML = '<div style="display:flex;gap:6px;padding:6px 12px;align-items:center;border-bottom:1px solid var(--border)">'
+      + '<span style="font-size:11px;color:var(--text-muted);flex:none">大脑:</span>'
+      + '<span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:' + (on ? 'var(--text)' : '#f5a623') + '">' + (on ? 'LLMLite 兜底 · ' + esc(c.model || '(未填模型)') : '无 AI 配置块 — 点 ⚙ 配置 LLMLite 兜底(openai 兼容)') + '</span>'
+      + '<button class="dock-tool" id="lite-cfg" title="配置 LLMLite 兜底(endpoint/key/model, 可选 CORS 代理)">⚙</button></div>';
+    box.querySelector('#lite-cfg').onclick = openLiteConfig;
+  }
+  function openLiteConfig() { // 三字段极简: endpoint/key/模型(拉取列表可选); 保存合并写回, 不动 kv 里其余字段
+    const old = dock.querySelector('.lite-cfg-pop'); if (old) { old.remove(); return; }
+    const pop = document.createElement('div'); pop.className = 'voice-settings-pop lite-cfg-pop'; dock.appendChild(pop);
+    const F = (l, id, ph, pw, extra) => '<label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:8px">' + l + '<input id="' + id + '"' + (pw ? ' type="password"' : '') + (extra || '') + ' placeholder="' + ph + '" style="display:block;width:100%;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:11px;box-sizing:border-box"></label>';
+    pop.innerHTML = '<div style="font-size:12px;margin-bottom:10px">LLMLite 兜底 · openai 兼容(petri:ai 在岗时自动让位)</div>'
+      + F('Endpoint(chat/completions 全 URL)', 'lite-ep', 'https://api.xxx.com/v1/chat/completions')
+      + F('API Key', 'lite-key', 'sk-...', true)
+      + '<label style="display:block;font-size:11px;color:var(--text-muted);margin-bottom:8px">模型<select id="lite-model" style="display:block;width:100%;margin-top:4px;background:var(--bg);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:6px 8px;font-size:11px;box-sizing:border-box"><option value="">(填 endpoint/key 后点「拉取模型」)</option></select></label>'
+      + '<div style="display:flex;gap:6px;margin-top:4px"><button class="cl-btn" id="lite-pull">拉取模型</button><button class="cl-btn-primary" id="lite-save" style="flex:1">保存</button></div>'
+      + '<div id="lite-msg" style="font-size:11px;color:var(--text-muted);margin-top:8px"></div>';
+    const setModels = (list, cur) => { const sel = pop.querySelector('#lite-model'); const arr = (cur && list.indexOf(cur) < 0) ? [cur].concat(list) : list.slice(); if (!arr.length) arr.push(''); sel.innerHTML = arr.map(m => '<option value="' + esc(m) + '"' + (m === cur ? ' selected' : '') + '>' + (esc(m) || '(填好后点拉取模型)') + '</option>').join(''); };
+    Lite.cfg().then(c => { pop.querySelector('#lite-ep').value = c.endpoint || ''; pop.querySelector('#lite-key').value = c.key || ''; if (c.model) setModels([c.model], c.model); });
+    const save = async () => { const c = Object.assign({}, await Lite.cfg(), { endpoint: pop.querySelector('#lite-ep').value.trim(), key: pop.querySelector('#lite-key').value.trim(), model: pop.querySelector('#lite-model').value.trim() }); await ctx.kv.set(Lite.KEY, c); return c; };
+    pop.querySelector('#lite-pull').onclick = async () => {
+      const el = pop.querySelector('#lite-msg'); el.textContent = '拉取中…';
+      try {
+        await save(); const list = await Lite.models();
+        setModels(list, (await Lite.cfg()).model || list[0]);
+        el.textContent = '✓ ' + list.length + ' 个模型, 下拉全部可选';
+      } catch (e) { el.textContent = '✗ ' + e.message; }
+    };
+    pop.querySelector('#lite-save').onclick = async () => {
+      const c = await save();
+      if (c.endpoint && c.key) await S.set('agent.brain', { providerId: 'llmlite', model: c.model });
+      pop.remove(); renderBrain();
+    };
+  }
+
+  /* ════ 大脑选择(provider+model+🎙); petri:ai 不在岗 → LLMLite 兜底配置行 ════ */
+  async function renderBrain() {
+    const box = $('brain-selector'); const L = await llm(); // 永不为 null: ai 可用给 ai, 否则 Lite 门面
+    if (L.lite) { renderLiteBrain(box); return; }
+    const provs = await L.getProviders();
+    const brains = provs.filter(p => p.apiKey);
+    const saved = await S.get('agent.brain', null);
+    const cur = brains.find(p => saved && p.id === saved.providerId) || brains[0];
+    if (!cur) { box.innerHTML = '<span style="font-size:11px;color:#f5a623;padding:6px 12px;display:block">还没有可用大脑 — 去 ⚙ 设置给某个厂商填 API Key 并测通</span>'; return; }
+    const model = (saved && saved.model) || cur.model || (cur.models || [])[0] || '';
+    box.innerHTML = '<div style="display:flex;gap:6px;padding:6px 12px;align-items:center;border-bottom:1px solid var(--border)"><span style="font-size:11px;color:var(--text-muted);flex:none">大脑:</span>'
+      + '<select id="brain-prov" style="flex:1;min-width:0">'
+      + brains.map(p => '<option value="' + p.id + '"' + (p.id === cur.id ? ' selected' : '') + '>' + esc(p.name) + '</option>').join('')
+      + '</select>'
+      + '<select id="brain-model" style="flex:1.3;min-width:0">'
+      + ((cur.models && cur.models.length ? cur.models : [model || '(去设置拉取模型)']).map(m => '<option' + (m === model ? ' selected' : '') + '>' + esc(m) + '</option>').join(''))
+      + '</select>'
+      + '<button class="dock-tool" id="voice-btn" title="语音设置">🎙</button></div>';
+    const persist = () => S.set('agent.brain', { providerId: box.querySelector('#brain-prov').value, model: box.querySelector('#brain-model').value });
+    box.querySelector('#brain-prov').onchange = async () => { await persist(); const sv = await S.get('agent.brain'); sv.model = ''; await S.set('agent.brain', sv); renderBrain(); };
+    box.querySelector('#brain-model').onchange = persist;
+    box.querySelector('#voice-btn').onclick = openVoiceSettings;
+    if (!saved || !saved.model) persist(); // 厂商切换会清空 model: 重绘解析出默认模型后立即持久化, 存档不再与实际请求脱节
+  }
+  ctx.on('providers:changed', () => { if (expanded) renderBrain(); });
+  ctx.on('llm:ready', () => { if (expanded) renderBrain(); });
+
+  const TASK_OF_CAP = { 'audio.transcribe': 'sttModel', 'audio.generate': 'ttsModel' };
+  const capModel = (p, cap) => (p && (p[TASK_OF_CAP[cap]] || ((p.verified || {})[cap] || {}).model)) || ''; // 显式任务字段 > 实测台账记录 > 空(=适配器默认); 用户在 AI 配置写的字段永远赢, 台账只当没配时的参考
+  async function resolveVoicePrefs() { // 语音厂商全部来自 ai 块能力自报+verified 台账(与工作流 AI 节点同一判据: 已测通优先), 零字面量
+    const v = await S.get('voice.prefs', {});
+    let caps = []; try { caps = await (await llm()).getCapabilities(); } catch (e) { }
+    const pick = (cap, savedId) => { const rows = caps.filter(p => p.hasKey && (p.capabilities || []).includes(cap));
+      return rows.find(p => p.id === savedId) || rows.filter(p => (p.verified || {})[cap] && capModel(p, cap))[0] || rows.filter(p => capModel(p, cap))[0] || rows[0] || null; };
+    const stt = pick('audio.transcribe', v.sttProviderId), tts = pick('audio.generate', v.ttsProviderId);
+    return { sttProviderId: stt && stt.id, sttModel: capModel(stt, 'audio.transcribe'), ttsProviderId: tts && tts.id, ttsModel: capModel(tts, 'audio.generate'), voiceId: v.voiceId || '', speed: v.speed || 1.0, _hasTTS: !!tts, _hasSTT: !!stt };
+  }
+
+  ctx.timer(async () => { /* 出厂技能播种: 不覆盖用户已改版本(key 存在即跳过) */
+    const FS = { "skill:petri:agent:套路-台账与复盘": { v: 1, seededBy: 'petri:agent', desc: "长任务跨会话记忆, 或用户要复盘/沉淀经验时读", guide: "① 台账(长任务/可能断线): write kv:task:<id> {goal,steps:[{t,done:false}],note}; 每步 patch 改对应 done+更新 note; 新会话先 read \"kv:task:\" 列未完、read \"kv:task:<id>\" 接着干; 完成后 value:null 清账。agent.loop 内引擎自动记 rounds, 别再手动记账。② 复盘(用户说复盘/沉淀时): 会话回看, 三路沉淀 — 可复用套路 → write kv:skill:petri:agent:<名> {value:{desc,guide}}; 稳定偏好 → 重写 kv:settings:agent.memory(≤400字); 未完 → kv:task:。只存经得起复用的, 写前查重, 宁缺勿滥。" } };
+    FS['skill:petri:agent:套路-自主循环'] = { v: 2, seededBy: 'petri:agent', desc: '接到要自己跑多轮、反复试错直到达成某状态的长任务(改 miniapp/修 bug/搭功能并验证)时读', guide: 'run call:agent.loop {goal, doneCriteria, target, maxIters}。① doneCriteria.checks = 结构化 matcher; done = 目标状态 + 运行态证据, 绝不把 edit/click 成功当 ' +
+      'done。类型: snapshotContains/NotContains、sourceContains/NotContains、buttonText、evalEquals、clickChanges、traceNoNewErrors、screenshotExists; target 写 miniappId 字符串即可(对象/带 miniapp: 前缀也认, 引擎归一)。判据要覆盖"行为对不对"——计数/移动/删除/持久化重开用 evalEquals/clickChanges/重开后 ' +
+      'snapshotContains 验真实状态, 别只 sourceContains+非白屏 那种 presence。判据要断言行为结果(计数/列表内容/持久化重开), 别断言随状态切换的瞬态文案(如点完会变成"全部取消"的按钮字)——那样真做对了也会误判未过。matcher 字段: contains类={text}, evalEquals={expr,expected}(期望值键名叫 expected, 不是 equals/value), buttonText={expected,selector?}, clickChanges={selector}, 各条可带 target 覆盖默认。evalEquals 的 expr 可以是 async(引擎已 await)。无 checks=无法机检, 按 insufficient_observability 停。判据写错就修它重跑(同 target 判据高水位跨循环守着, 删判据会判 doneCriteria_weakened); 别弃这个循环另起新的绕过——要接管加 takeover。② 每轮: observe → 一个假设 → 最小改动(有风险先 read 存 kv:backup:) → 停下别再调工具, 引擎自动 verify+record; 别自己手动写 kv:task: ' +
+      'rounds, 引擎记。③ verify 没过→改代码再试; 绝不删/弱化 doneCriteria 来"过"(删判据引擎判 doneCriteria_weakened, 不算 done); 某条判据真写错就停下说理由让用户定。引擎自动停在 done/maxIters/stagnation。④ 证据矛盾、要改 Stem/多块/keys/数据、回滚仍坏、无法观测 → 停下汇报让人决定。⑤ 达成后先交付用户最初要求(台账/复盘/产物), 再按 套路-复盘 看要不要沉淀 ' +
+      'skill。' };
+    FS['skill:petri:agent:套路-观察与操作运行中miniapp'] = { v: 4, seededBy: 'petri:agent', desc: '要看或操作任何运行中界面(miniapp 画面 / Colony 自身的 dock、工作流画布、桌面)时读(配合 agent.loop 的 verify 或手动调试)', guide: '先分清语义与细节: 界面语义(当前在哪页/桌面有谁/开着什么窗) → run call:ui.state(ui-shell 的语义之眼, 详见 skill petri:ui-shell:机制-界面之眼; ui-shell 缺席则无此能力, 直接 snapshot host); 要具体按钮/输入框/坐标/交互才 snapshot/click。眼手对一切界面同一套: miniapp 先 run miniapp:<id> 再 {id:"<miniappId>"} 寻址(别用 channel, 随重挂失效); Colony 宿主界面(dock/画布/桌面)用 {id:"host"}。snapshot{id} 拿结构化画面(文字/按钮/输入框/selector/坐标)' +
+      ', 默认机检、轻且稳; click/input/key/eval{id,...} 操作, eval 的 expr 可 async(已 await)。run miniapp:<id> 现等首帧就绪才返回(带 ready); 元素/文字延迟出现(异步渲染/请求回来才有)别忙轮询 snapshot, 用 runtime.waitFor{id,selector|text,timeout}(事件驱动, 出现即返回, host 界面同样支持 {id:"host"})再 snapshot/click。screenshot{id} 拿真像素(canvas 直取; DOM 栅格化回 dom-raster+ref; 宿主截图不含 iframe 内容), 看图用 getShot{ref,"attach":1}(真身走附件回灌, 字节不进文本; "full":1 才回原文)——仅判据涉及视觉(颜色/布局/重叠/遮挡/样式/弹层)或 snapshot 不足才用。trace.query{id,level} 查报错(host 无 trace)。' };
+    FS['skill:petri:agent:套路-出屏展示'] = { v: 2, seededBy: 'petri:agent', desc: '要在对话框给用户展示图片/音视频/应用/文件或数据时读', guide: '回答正文写 [[show:<地址>]] 自动渲染: media:<id>/chatasset:<id>/wfasset:<id>/runtimeshot:<ref>/任意 kv key/miniapp:<id>(应用卡片带打开键)/fs:<路径>。只写标记不写字节(引擎渲染时才取); 引用被删=失效卡片属正常。生图/合成语音: run call:ai.imagine {prompt} / call:ai.tts {text} → 回 mediaRef → [[show:mediaRef]] 一步到位。' };
+    FS['skill:petri:agent:套路-run-js编排'] = { v: 1, seededBy: 'petri:agent', desc: '一件事要连调多个能力/循环批处理/边跑边等结果时读(否则一步一轮很贵)', guide: 'run {target:"js", code, args?, timeout?} —— js 不是某个能力名(别写 call:runtime.js), 是 run 的第四种 target。code 是函数体, 直接写 `return 值`(该值回灌给你)。体内只有三个入口: await colony.call("<ns.method>",{...}) 调任意能力(名字同 read capabilities, 如 data.set/data.list/runtime.click)、await sleep(ms) 等待、input(=你传的 args)。没有 kv/fetch 全局——本地数据走 colony.call("data.*"), 网络走 colony.call("net.fetch",{url})。例: 批量写+计数一轮完成 code:"for(const n of [1,2,3])await colony.call(\'data.set\',{key:\'x:\'+n,value:{n}});const r=await colony.call(\'data.list\',{prefix:\'x:\'});return (r.items||r.keys||r).length"。超时默认 20s(死循环会被焚帧)。' };
+    ctx.sdk.handle('agent.loop', async (a) => {   // 自主循环能力。武装后由引擎主循环驱动 observe→diagnose→act→verify→record→stop
+      a = a || {}; if (!a.goal) throw new Error('agent.loop 需要 goal(目标)');
+      const curChecks = dcOf(a.doneCriteria).length;
+      if (_loop && _loop.taskId && !a.takeover) {   // 补闸: 有活跃循环时拒绝另起, 防"弃旧开新换考卷"(实测 flash 连开三个绕过判据高水位)
+        const prev = await ctx.kv.get('task:' + _loop.taskId);
+        if (prev && prev.status === 'running') throw new Error('已有活跃自主循环 ' + _loop.taskId + '(' + String(prev.goal || '').slice(0, 40) + ')。判据写错就修它的 doneCriteria 重跑, 别另起新循环绕过判据; 确要接管加 {"takeover":true}(旧循环记 superseded)');
+      }
+      const tgt = a.target || null;
+      const hwKey = 'loopmax:' + (tgt || '_notarget');   // 判据高水位按 target 存, 跨循环继承 → 换 taskId 也删不掉判据(补闸2)
+      const hiwater = Math.max((await ctx.kv.get(hwKey)) || 0, curChecks);
+      await ctx.kv.set(hwKey, hiwater);
+      if (_loop && _loop.taskId && a.takeover) {   // 接管: 旧台账收尾为 superseded, 不留悬挂 running(补闸3)
+        const prev = await ctx.kv.get('task:' + _loop.taskId);
+        if (prev && prev.status === 'running') { prev.status = 'stopped'; prev.stopReason = 'superseded'; await ctx.kv.set('task:' + _loop.taskId, prev); }
+      }
+      const taskId = a.taskId || ('loop-' + Date.now().toString(36));
+      const task = {
+        goal: a.goal, doneCriteria: { checks: dcOf(a.doneCriteria) }, target: tgt,
+        status: 'running', maxIters: a.maxIters || 8, observeMode: a.observeMode || 'auto',
+        iter: 0, backup: a.backup || null, rounds: [], note: a.note || '', startedAt: Date.now()
+      };
+      await ctx.kv.set('task:' + taskId, task);
+      _loop = { taskId, failSig: [], maxChecks: hiwater, target: tgt };   // maxChecks 用继承后的高水位, 非本次判据数
+      return { ok: true, armed: true, taskId, maxIters: task.maxIters,
+        hint: '已进入自主循环。接下来每轮: observe→一个假设→最小改动, 然后停下别再调工具, 引擎自动跑 verify(doneCriteria 的 matcher) 并 record 进 kv:task:' + taskId + ', 决定继续/停止(done/maxIters/stagnation)。done 必须运行态证据, 别把执行成功当 done。' };
+    });
+    for (const dead of ['skill:petri:agent:机制-SDK链路', 'skill:petri:agent:机制-接管陌生块或能力', 'skill:petri:agent:套路-长任务台账', 'skill:petri:agent:套路-复盘']) { try { await ctx.kv.del(dead); } catch (e) { } } // 刀6 收敛: 前两条随刀1 全家族报错自明而废; 后两条并入 套路-台账与复盘
+    for (const k of Object.keys(FS)) { try { const cur = await ctx.kv.get(k); if (!cur || (FS[k].v !== undefined && cur.v !== FS[k].v)) await ctx.kv.set(k, FS[k]); } catch (e) { } } // 版本式: 带 v 的条目随块升级重播, 不带 v 保持种一次(用户可改)
+  }, 120);
+
+  /* ════ 语音设置弹层(STT/TTS 厂商 + 音色 + 语速 → voice.prefs; 模型不落库, 现场由能力自报推导) ════ */
+  async function openVoiceSettings() {
+    const old = dock.querySelector('.voice-settings-pop'); if (old) { old.remove(); return; }
+    const L = await llm();
+    const caps = await L.getCapabilities();
+    const sttProvs = caps.filter(p => p.hasKey && (p.capabilities || []).includes('audio.transcribe'));
+    const ttsProvs = caps.filter(p => p.hasKey && (p.capabilities || []).includes('audio.generate'));
+    const v = await resolveVoicePrefs();
+    const pop = document.createElement('div'); pop.className = 'voice-settings-pop'; dock.appendChild(pop);
+    if (!sttProvs.length && !ttsProvs.length) { // 诚实空态: 没厂商就不画下拉, 不编造可选项
+      pop.innerHTML = '<div style="font-size:12px;font-weight:600">🎙 语音设置</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">没有声明语音能力的已配 Key 厂商 — 去 ⚙ AI 配置添加并配好 Key</div>';
+      return;
+    }
+    const provLabel = (p, cap) => esc(p.name) + ((p.verified || {})[cap] ? ' ✓已测通' : ''); // 厂商行只写厂商; 模型独立一行, 两概念不混
+    const modelSel = (sid, p, cap) => { // 模型下拉 = 该厂商全部模型(不按名字猜) + 任务字段/台账值置顶; 选中值直写 AI 配置任务字段 — 单一事实源, 无第二份库存
+      const cur = capModel(p, cap);
+      const ms = (p.models || []).slice();
+      for (const ex of [((p.verified || {})[cap] || {}).model, p[TASK_OF_CAP[cap]]]) if (ex) { const i = ms.indexOf(ex); if (i >= 0) ms.splice(i, 1); ms.unshift(ex); } // 台账/任务字段值取出置顶(长列表里当前值别埋底下)
+      return '<select id="' + sid + '"><option value=""' + (!cur ? ' selected' : '') + '>(适配器默认)</option>' + ms.map(m => '<option' + (m === cur ? ' selected' : '') + '>' + esc(m) + '</option>').join('') + '</select>';
+    };
+    function paint() {
+      const sp = sttProvs.find(p => p.id === v.sttProviderId) || sttProvs[0] || null;
+      const tp = ttsProvs.find(p => p.id === v.ttsProviderId) || ttsProvs[0] || null;
+      if (sp) v.sttProviderId = sp.id; if (tp) v.ttsProviderId = tp.id;
+      pop.innerHTML = '<div style="font-size:12px;font-weight:600">🎙 语音设置</div><div style="font-size:10px;color:var(--text-muted);margin-top:2px">模型改动直接写进 AI 配置的任务模型字段(同一份数据); ✓=该能力实测通过</div>'
+        + '<label>听觉(STT) 厂商</label>'
+        + (sttProvs.length ? '<select id="vp-sp">' + sttProvs.map(p => '<option value="' + p.id + '"' + (sp && p.id === sp.id ? ' selected' : '') + '>' + provLabel(p, 'audio.transcribe') + '</option>').join('') + '</select>' : '<div style="font-size:10px;color:var(--text-muted)">(无厂商声明此能力)</div>')
+        + (sp ? '<label>听觉模型</label>' + modelSel('vp-sm', sp, 'audio.transcribe') : '')
+        + '<label>朗读(TTS) 厂商</label>'
+        + (ttsProvs.length ? '<select id="vp-tp">' + ttsProvs.map(p => '<option value="' + p.id + '"' + (tp && p.id === tp.id ? ' selected' : '') + '>' + provLabel(p, 'audio.generate') + '</option>').join('') + '</select>' : '<div style="font-size:10px;color:var(--text-muted)">(无厂商声明此能力)</div>')
+        + (tp ? '<label>朗读模型</label>' + modelSel('vp-tm', tp, 'audio.generate') : '')
+        + '<label>音色</label><select id="vp-voice"><option>加载中…</option></select>'
+        + '<label>语速</label><input id="vp-speed" type="number" min="0.5" max="2" step="0.1" value="' + (v.speed || 1) + '">'
+        + '<div style="display:flex;gap:8px;margin-top:10px;justify-content:flex-end"><button class="ad-btn-ghost" id="vp-try">试听</button><button class="ad-btn-primary" id="vp-save">保存</button></div>';
+      const spSel = pop.querySelector('#vp-sp'); if (spSel) spSel.onchange = e => { v.sttProviderId = e.target.value; paint(); };
+      const tpSel = pop.querySelector('#vp-tp'); if (tpSel) tpSel.onchange = e => { v.ttsProviderId = e.target.value; v.voiceId = ''; paint(); }; // 换厂商旧音色几乎必错, 清残值防错配
+      const smSel = pop.querySelector('#vp-sm'); if (smSel) smSel.onchange = async e => { await L.updateProvider(sp.id, { sttModel: e.target.value }); sp.sttModel = e.target.value; }; // 直写任务字段, capModel 即时跟随
+      const tmSel = pop.querySelector('#vp-tm'); if (tmSel) tmSel.onchange = async e => { await L.updateProvider(tp.id, { ttsModel: e.target.value }); tp.ttsModel = e.target.value; };
+      pop.querySelector('#vp-speed').onchange = e => { v.speed = parseFloat(e.target.value) || 1; };
+      const vSel = pop.querySelector('#vp-voice');
+      (tp ? L.listVoices(tp.id).catch(() => []) : Promise.resolve([])).then(arr => {
+        if (!arr || !arr.length) { // 拉不到音色表 → 降级手填; 留空 = 厂商默认, 合法状态不强填
+          const inp = document.createElement('input'); inp.id = 'vp-voice'; inp.value = v.voiceId || ''; inp.placeholder = '音色 id 手填(该厂商拉不到音色表); 留空用厂商默认';
+          inp.onchange = e => { v.voiceId = e.target.value; }; vSel.replaceWith(inp); return;
+        }
+        if (v.voiceId && !arr.some(x => x[0] === v.voiceId)) v.voiceId = ''; // 存的音色不在该厂商表里(换过厂商/历史残值) → 归厂商默认自愈
+        vSel.innerHTML = '<option value=""' + (!v.voiceId ? ' selected' : '') + '>(厂商默认音色)</option>'
+          + arr.map(x => '<option value="' + x[0] + '"' + (x[0] === v.voiceId ? ' selected' : '') + '>' + esc(x[1]) + '</option>').join('');
+        vSel.onchange = e => { v.voiceId = e.target.value; };
+      });
+      pop.querySelector('#vp-save').onclick = async () => { await S.set('voice.prefs', { sttProviderId: v.sttProviderId, ttsProviderId: v.ttsProviderId, voiceId: v.voiceId, speed: v.speed }); pop.remove(); }; // 不存模型字段: 模型永远现场从 AI 配置推导, 防陈旧漂移
+      pop.querySelector('#vp-try').onclick = async () => {
+        try {
+          const m = capModel(tp, 'audio.generate');
+          const r = await L.generateAudio({ providerId: tp && tp.id, ...(m ? { model: m } : {}), text: '你好, 我是 Colony 的全能 agent。', ...(v.voiceId ? { voice: { voice_id: v.voiceId, speed: v.speed } } : {}) });
+          playAudio(r);
+        } catch (e) { alert(e.message); }
+      };
+    }
+    paint();
+  }
+
+  /* ════ 消息/步骤渲染(appendMsg/appendUserMsg/appendStep) + [[show:]] 出屏 ════
+     [[show:<地址>]] 写在回答正文里, 渲染时原地变媒体/卡片; 地址复用四原语地址族(kv key 裸写即可/miniapp:<id>/fs:<路径>)。
+     字节只在渲染时取(_showCache 防流式重绘反复读库), 上下文里只有标记本身。 */
+  ctx.css('.msg-atts{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;width:100%;align-items:center}'
+    + '.msg-atts audio{max-width:100%;height:32px}'
+    + '.show-slot{display:inline-block;max-width:100%;vertical-align:top}'
+    + '.msg-body .att-chip,.msg-atts .att-chip{max-width:100%;cursor:pointer}'
+    + '.show-media{max-width:min(320px,100%);border-radius:10px;display:block;margin:6px 0;cursor:zoom-in}'
+    + '.show-media.big{max-width:100%;cursor:zoom-out}'
+    + '.att-act{background:none;border:none;color:var(--accent);cursor:pointer;font-size:11px;padding:0 2px;flex-shrink:0}'
+    + '.att-chip.show-dead{color:var(--warn);border-color:rgba(255,149,0,.35)}'); // 出屏/附件折叠样式
+  const SHOW_RE = /\[\[show:([^\]\s]{1,200})\]\]/g;
+  const escA = s2 => esc(s2).replace(/"/g, '&quot;');
+  const _showCache = new Map(); // addr → 解析结果(防流式期间每 50ms 重绘反复读库/重解析); 上限 40 条
+  const dlDataUrl = (name, du) => { const a2 = document.createElement('a'); a2.href = du; a2.download = name || 'media'; document.body.appendChild(a2); a2.click(); a2.remove(); };
+  function showCard(slot, icon, label, acts) {
+    slot.textContent = ''; const c = document.createElement('span'); c.className = 'att-chip';
+    c.innerHTML = '<span class="att-icon">' + icon + '</span><span class="att-name">' + esc(label) + '</span>';
+    (acts || []).forEach(x => { const b = document.createElement('button'); b.className = 'att-act'; b.textContent = x[0]; b.onclick = e => { e.stopPropagation(); x[1](b, c); }; c.appendChild(b); });
+    slot.appendChild(c); return c;
+  }
+  function showDead(slot, addr, why) { showCard(slot, '⚠', '引用已失效/不可达: ' + addr + (why ? ' (' + String(why).slice(0, 60) + ')' : ''), []).classList.add('show-dead'); }
+  function showMediaEl(slot, du, mime, name, hit) {
+    slot.textContent = '';
+    if (/^image\//.test(mime)) { const im = document.createElement('img'); im.className = 'show-media';
+      if (hit && hit.w) im.style.aspectRatio = hit.w + ' / ' + hit.h; // 已知尺寸按比例占位(CSS aspect-ratio): 防高度塌陷; 不能用 width/height 属性——CSS max-width 压宽后属性高度不跟缩=拉长变形
+      else if (hit) im.onload = () => { if (im.naturalWidth) { hit.w = im.naturalWidth; hit.h = im.naturalHeight; } };
+      im.src = du; im.onclick = () => im.classList.toggle('big'); slot.appendChild(im); }
+    else { const av = document.createElement(/^video\//.test(mime) ? 'video' : 'audio'); av.controls = true; av.src = du; if (/^video\//.test(mime)) av.className = 'show-media'; slot.appendChild(av); }
+    const b = document.createElement('button'); b.className = 'att-act'; b.textContent = '⤓'; b.title = '下载'; b.onclick = () => dlDataUrl(name || 'media', du); slot.appendChild(b);
+  }
+  function showTextChip(slot, icon, label, content, name) {
+    let d = null;
+    return showCard(slot, icon, label, [['展开', () => { if (!d) { d = document.createElement('div'); d.className = 'cr-d'; d.textContent = content.length > 20000 ? content.slice(0, 20000) + '\n…[已截断, 全文 ' + content.length + ' 字]' : content; slot.appendChild(d); }
+      else d.style.display = d.style.display === 'none' ? 'block' : 'none'; }],
+      ['⤓', () => ctx.stem.download(name || 'colony.txt', content)]]);
+  }
+  const _b64ToDu = (s, mime) => !s ? null : /^data:/.test(s) ? s : 'data:' + (mime || 'application/octet-stream') + ';base64,' + s; // data 字段各源不一: 有的是完整 dataURL(net.fetch/wfasset), 有的是裸 base64(附件); 归一
+  const _mediaDu = v => v && (v.dataUrl ? (/^data:/.test(v.dataUrl) ? v.dataUrl : _b64ToDu(v.dataUrl, v.mimeType)) : v.audioBase64 ? _b64ToDu(v.audioBase64, v.mimeType || 'audio/mpeg') : (v.data && v.mimeType ? _b64ToDu(v.data, v.mimeType) : null));
+  async function resolveShow(slot) {
+    const addr = slot.getAttribute('data-addr') || '';
+    if (addr.startsWith('miniapp:')) { // 应用卡片(不缓存: 名称/体积会变)
+      const id = addr.slice(8), rec = await appsOr().get(id);
+      if (!rec) return showDead(slot, addr);
+      showCard(slot, rec.icon || '📦', (rec.name || id) + ' · 应用 · ' + ((rec.code || '').length / 1024).toFixed(1) + 'KB',
+        [['▶ 打开', () => { const u = ui(); u && u.openRunner ? u.openRunner(id) : alert('界面块不在岗, 无法打开运行'); }],
+          ['⤓', () => ctx.stem.download((rec.name || id) + '.html', rec.code || '')]]);
+      return;
+    }
+    if (addr.startsWith('fs:')) { // 口袋磁盘文件(porter 在岗才通); html 不直跑(流通安全: 导入为应用是用户手动决定)
+      const path = addr.slice(3), name = path.split('/').pop();
+      const r = await callCap('fs.read', { path, encoding: 'dataUrl' });
+      const mime = r.mimeType || '';
+      if (/^(image|audio|video)\//.test(mime)) return showMediaEl(slot, r.dataUrl, mime, name);
+      const rt = await callCap('fs.read', { path });
+      return showTextChip(slot, /html/.test(mime) || /\.html?$/i.test(name) ? '🌐' : '📄', name + ' · 口袋 · ' + ((r.bytes || 0) / 1024).toFixed(1) + 'KB', rt.text || '', name);
+    }
+    const key = addr.startsWith('kv:') ? addr.slice(3) : addr; // 其余一律当 kv key(chatasset:/media:/wfasset:/runtimeshot: 等裸写即可)
+    const _showPut = (k, v) => { _showCache.set(k, v); if (_showCache.size > 40) _showCache.delete(_showCache.keys().next().value); }; // 上限淘汰唯一实现(活/死条目同规)
+    let hit = _showCache.get(key);
+    if (hit && hit.dead) { // 死引用也缓存(不然流式期每帧异步查库=芯片晚到一拍整列抖); 15s TTL 防"资产晚到却被永久钉死"
+      if (Date.now() - hit.at > 15000) { _showCache.delete(key); hit = null; }
+      else return showDead(slot, addr);
+    }
+    if (!hit) {
+      const v = await ctx.kv.get(key);
+      if (v == null) { _showPut(key, { dead: 1, at: Date.now() }); return showDead(slot, addr); }
+      const du = _mediaDu(v), mime = (v && v.mimeType) || (du ? du.slice(5, du.indexOf(';')) : '');
+      hit = du && /^(image|audio|video)\//.test(mime) ? { du, mime, name: v.name || key } : { text: typeof v === 'string' ? v : typeof v.text === 'string' ? v.text : JSON.stringify(v, null, 2), name: v && v.name };
+      _showPut(key, hit);
+    }
+    if (hit.du) return showMediaEl(slot, hit.du, hit.mime, hit.name, hit);
+    showTextChip(slot, '🗃', (hit.name || key) + ' · ' + hit.text.length + '字', hit.text, hit.name || key.replace(/[:/]/g, '_') + '.txt');
+  }
+  function appendMsg(author, text, cls) {
+    const el = document.createElement('div'); el.className = 'agent-msg ' + (cls || '');
+    let body = '', last = 0, mk; const t = String(text == null ? '' : text); SHOW_RE.lastIndex = 0;
+    while ((mk = SHOW_RE.exec(t))) { body += esc(t.slice(last, mk.index)) + '<span class="show-slot" data-addr="' + escA(mk[1]) + '">⏳</span>'; last = mk.index + mk[0].length; }
+    body += esc(t.slice(last));
+    el.innerHTML = '<div class="msg-author">' + esc(author) + '</div><div class="msg-body">' + body + '</div>' + (cls === 'assistant' ? '<span class="msg-speak" title="朗读这条">🔊</span>' : '');
+    el.dataset.mid = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+    const sp = el.querySelector('.msg-speak');
+    if (sp) sp.onclick = () => speakMessage(el);
+    el.querySelectorAll('.show-slot').forEach(s2 => resolveShow(s2).catch(e => showDead(s2, s2.getAttribute('data-addr'), e.message)));
+    $('agent-convo').appendChild(el); chatScroll();
+    return el;
+  }
+  function appendUserMsg(m) { // 用户消息: 文本附件 chip(当轮真身现渲, 归档后经引用取), 媒体内联(当轮真身 或 归档后的 chatasset 引用)
+    const text = _txt(m.content), author = m.toName ? '你 → ' + m.toName : '你';
+    const parts = Array.isArray(m.content) ? m.content.filter(p => p && (p.type !== 'text' || p.att)) : [];
+    if (!parts.length) return appendMsg(author, text, 'user');
+    const el = appendMsg(author, text, 'user');
+    const row = document.createElement('div'); row.className = 'msg-atts';
+    parts.forEach(p => {
+      if (p.att) { const s0 = document.createElement('span'); s0.className = 'show-slot'; row.appendChild(s0);
+        return showTextChip(s0, '📄', (p.name || '附件') + ' · ' + (p.text || '').length + '字', p.text || '', p.name); }
+      const s2 = document.createElement('span'); s2.className = 'show-slot'; row.appendChild(s2);
+      if (p.type === 'ref') { s2.setAttribute('data-addr', p.addr || ''); s2.textContent = '⏳'; resolveShow(s2).catch(e => showDead(s2, p.addr, e.message)); }
+      else if (p.data) showMediaEl(s2, 'data:' + (p.mimeType || 'application/octet-stream') + ';base64,' + p.data, p.mimeType || '', p.name);
+    });
+    el.appendChild(row); return el;
+  }
+  function tjson(x, max){
+    let v;
+    try{ v = typeof x==='string' ? x : JSON.stringify(x, null, 2); }catch(e){ v = String(x); }
+    if (typeof v !== 'string') v = String(v);
+    if(v.length>(max||20000)) v=v.slice(0,max||20000)+'\n…[轨迹已截断, 完整结果按回灌规则进上下文]';
+    return v;
+  }
+  /* ── 工具链面板: 每次任务一条链, 运行中展开, 结束折叠成"⛓ N 步·点击展开"; 行可点开看 args/result ── */
+  /* ── 工具链行(思考/工具)与正式消息均来自 hist, renderTranscript 统一重绘; 流式回答 _streamAnswer 是非持久 UI 暂态 ── */
+  function traceRowEl(tr) {   // 一行渲染: 实时与刷新恢复共用; 状态认 status(running/done/error)
+    const row = document.createElement('div'); row.className = 'chain-row ' + statusCls(tr);
+    row.innerHTML = '<div class="cr-line"><span class="cr-ic"></span><span class="cr-t"></span><span class="cr-meta"></span></div><div class="cr-d" style="display:none"></div>';
+    row.querySelector('.cr-t').textContent = tr.label || tr.name || '…';
+    row.querySelector('.cr-meta').textContent = (tr.duration != null ? tr.duration + 'ms · ' : '') + (tr.summary || '');
+    let det = tr.detail ? String(tr.detail) : '';
+    if (tr.args !== undefined) det += (det ? '\n\n' : '') + 'args\n' + tjson(tr.args, 4000);
+    if (tr.result != null) det += (det ? '\n\n' : '') + (tr.ok === false ? 'error' : 'result') + '\n' + tjson(tr.result);
+    row.querySelector('.cr-d').textContent = det || '(运行中…)';
+    row.querySelector('.cr-line').onclick = () => { const d = row.querySelector('.cr-d'); d.style.display = d.style.display === 'none' ? 'block' : 'none'; };
+    return row;
+  }
+  function appendStep(label) { // spinner + step-text, 群聊桥接(bridge)仍在用
+    const el = document.createElement('div'); el.className = 'agent-step';
+    el.innerHTML = '<span class="step-spinner"></span><span class="step-text">' + esc(label) + '</span>';
+    $('agent-convo').appendChild(el); chatScroll();
+    return el;
+  }
+
+  /* ════ 朗读(口语化总结 → TTS → 缓存 → 播放/暂停) ════ */
+  let ttsCache = {}, playingAudio = null, playingBtn = null;
+  function playAudio(r) {
+    const url = r && (r.url || (r.audioBase64 ? 'data:' + (r.mimeType || 'audio/mpeg') + ';base64,' + r.audioBase64 : null));
+    if (!url) throw new Error('TTS 未返回音频');
+    if (playingAudio) { playingAudio.pause(); playingAudio = null; }
+    playingAudio = new Audio(url); playingAudio.play();
+    return playingAudio;
+  }
+  async function ttsFetch(text) {   // 按已存语音偏好合成(speakText/speakMessage 共用; 弹层「试听」用未保存选择, 不走这里)
+    const v = await resolveVoicePrefs();
+    if (!v._hasTTS) throw new Error('朗读需要一个声明了文字转语音(audio.generate)能力的已配 Key 厂商 — 去 ⚙ AI 配置添加');
+    return (await llm()).generateAudio({ providerId: v.ttsProviderId, ...(v.ttsModel ? { model: v.ttsModel } : {}), text, ...(v.voiceId ? { voice: { voice_id: v.voiceId, speed: v.speed } } : {}) });
+  }
+  async function speakText(text) { playAudio(await ttsFetch(text)); return { ok: true }; }
+  async function speakMessage(msgEl) {
+    const btn = msgEl.querySelector('.msg-speak'); const mid = msgEl.dataset.mid;
+    if (playingBtn === btn && playingAudio && !playingAudio.paused) { playingAudio.pause(); btn.textContent = '🔊'; playingBtn = null; return; }
+    try {
+      let entry = ttsCache[mid];
+      if (!entry) {
+        btn.textContent = '…';
+        const text = msgEl.querySelector('.msg-body').textContent;
+        const brain = await S.get('agent.brain', {});
+        let summary = text;
+        if (text.length > 120 && brain.providerId) { /* 口语化总结 */
+          summary = ((await streamText({ providerId: brain.providerId, model: brain.model,
+            messages: [{ role: 'user', content: '把下面内容口语化转述成适合朗读的一段话, 200字以内, 直接输出:\n' + text.slice(0, 3000) }] })) || text).trim();
+          const sEl = document.createElement('div'); sEl.className = 'msg-tts-summary'; sEl.textContent = '🗣 ' + summary; msgEl.appendChild(sEl);
+        }
+        entry = ttsCache[mid] = await ttsFetch(summary);
+      }
+      const audio = playAudio(entry);
+      btn.textContent = '⏸'; playingBtn = btn;
+      audio.onended = () => { btn.textContent = '🔊'; playingBtn = null; };
+    } catch (e) { btn.textContent = '🔊'; alert('朗读失败: ' + e.message); }
+  }
+
+  /* ════ 附件(文本读内容/图片音频转 base64 + chips) ════ */
+  let pendingAtts = [];
+  const TEXT_EXT = /\.(txt|md|json|csv|js|ts|py|html|css|xml|ya?ml|log|java|go|rs|rb|php|sh|sql)$/i;
+  const attText = (t, a) => a.kind === 'coderef' ? t + '\n\n[代码引用 ' + (a.ref || a.name) + ']\n```\n' + a.text + '\n```' : a.kind === 'uiref' ? t + '\n\n[界面元素 ' + (a.ref || a.name) + ']\n' + a.text : a.kind === 'textfile' ? t + '\n\n[文件 ' + a.name + ']\n' + a.text : t;   // 附件→文本片段(插话/正式发送共用; 媒体类原样返回不拼)
+  const toB64 = b => new Promise(res => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1]); r.readAsDataURL(b); });
+  function renderAtts() {
+    const box = $('agent-attachments');
+    if (!pendingAtts.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+    box.style.display = ''; box.innerHTML = '';
+    pendingAtts.forEach((a, i) => {
+      const c = document.createElement('span'); c.className = 'att-chip' + (a.kind === 'coderef' || a.kind === 'uiref' ? ' att-coderef' : '');
+      c.innerHTML = (a.type === 'image' ? '<img src="data:' + a.mimeType + ';base64,' + a.data + '">' : '<span class="att-icon">' + (a.kind === 'coderef' ? '&lt;/&gt;' : a.kind === 'uiref' ? '▣' : '📄') + '</span>')
+        + '<span class="att-name">' + esc(a.name) + '</span><span class="att-del">✕</span>';
+      if (a.kind === 'coderef' || a.kind === 'uiref') c.title = a.text.slice(0, 800);
+      c.querySelector('.att-del').onclick = () => { pendingAtts.splice(i, 1); renderAtts(); };
+      box.appendChild(c);
+    });
+  }
+  async function addFile(f) {
+    if (!f) return;
+    if (f.size > 8 * 1024 * 1024) return alert(f.name + ' 超过 8MB');
+    if (TEXT_EXT.test(f.name) || (f.type || '').startsWith('text/')) {
+      if (f.size > 200 * 1024) return alert(f.name + ' 文本超过 200KB');
+      pendingAtts.push({ kind: 'textfile', name: f.name, text: await f.text() });
+    } else {
+      const b64 = await toB64(f);
+      const type = (f.type || '').startsWith('image/') ? 'image' : (f.type || '').startsWith('audio/') ? 'audio' : (f.type || '').startsWith('video/') ? 'video' : 'file';
+      pendingAtts.push({ kind: 'media', type, name: f.name, mimeType: f.type, data: b64 });
+    }
+    renderAtts();
+  }
+  $('agent-attach').onclick = () => $('agent-file-input').click();
+  $('agent-file-input').onchange = e => { [...e.target.files].forEach(addFile); e.target.value = ''; };
+  ctx.listen($('agent-input'), 'paste', e => {
+    for (const it of ((e.clipboardData || {}).items || [])) if (it.kind === 'file') { addFile(it.getAsFile()); e.preventDefault(); return; }
+    const txt = e.clipboardData && e.clipboardData.getData('text') || '';
+    if (txt.length > 1500) { // 超长文本不灌输入框, 变附件块
+      e.preventDefault();
+      const codey = /\n/.test(txt) && (txt.match(/[{};=<>()]/g) || []).length > txt.length / 40;
+      pendingAtts.push(codey ? { kind: 'coderef', name: '代码片段 (' + txt.split('\n').length + ' 行)', ref: '粘贴', text: txt }
+        : { kind: 'textfile', name: '粘贴文本-' + new Date().toTimeString().slice(0, 8) + '.txt (' + txt.length + ' 字)', text: txt });
+      renderAtts();
+    }
+  });
+  /* 文件拖进 dock 任意位置 = 附件 */
+  ctx.listen(dock, 'dragover', e => { e.preventDefault(); dock.classList.add('drag-over'); });
+  ctx.listen(dock, 'dragleave', () => dock.classList.remove('drag-over'));
+  ctx.listen(dock, 'drop', e => {
+    e.preventDefault(); dock.classList.remove('drag-over');
+    if (e.dataTransfer.files && e.dataTransfer.files.length) { [...e.dataTransfer.files].forEach(addFile); if (!expanded) applyDock(true); return; }
+    const txt = e.dataTransfer.getData('text') || '';
+    if (txt.length > 1500) { pendingAtts.push({ kind: 'textfile', name: '拖入文本.txt (' + txt.length + ' 字)', text: txt }); renderAtts(); if (!expanded) applyDock(true); }
+  });
+  ctx.css('.agent-dock.drag-over{outline:2px dashed var(--accent);outline-offset:-2px}');
+
+  /* ════ 发送(@路由: bridge 成员 / 内置引擎) ════ */
+  let busy = false;
+  const idle = () => { busy = false; $('agent-send').textContent = '发送'; };   // 空闲态复位(群聊/互动/发送各收尾共用)
+  async function send() {
+    const inp = $('agent-input'); const text = inp.value.trim();
+    if (!text && !pendingAtts.length) return;
+    if (busy) {   // 运行中=插话(不开新任务, 入队)。含文本+代码/文件引用; 图片附件暂不支持
+      let it = text;
+      for (const a of pendingAtts) it = attText(it, a);
+      if (it.trim() && _relayRunning) { relayInterject(it); inp.value = ''; pendingAtts = []; renderAtts(); return; } // 互动运行中插嘴: 计数清零+进群记录, 不打断当前发言者(下一位看得到)
+      if (it.trim()) { _interrupts.push(it); if (_turnAbort) { try { _turnAbort.abort(); } catch (e) {} } } // 插话即时掐断当前流, engine 下一安全点吸收并重规划
+      inp.value = ''; pendingAtts = []; renderAtts();
+      return;
+    }
+    busy = true; _interrupts = []; _stop = false; $('agent-send').textContent = '插话'; // 新任务: 清残留插话, 按钮转"插话"(输入框/按钮不禁用)
+    inp.value = '';
+    stickBottom = true;
+    _histCache = await S.get(chatKey(curSession), []);   // 同步镜像; 实时 paint 都基于它
+    let content = text; // 附件→独立 part(正文 part 永不掺附件): 当轮真身喂模型, 轮末统一归档成 chatasset 引用
+    if (pendingAtts.length) {
+      const parts = [{ type: 'text', text }];
+      for (const a of pendingAtts) parts.push(a.kind === 'coderef' || a.kind === 'uiref' || a.kind === 'textfile'
+        ? { type: 'text', text: attText('', a), att: 1, name: a.name }
+        : { type: a.type, mimeType: a.mimeType, data: a.data, name: a.name });
+      content = parts;
+    }
+    pendingAtts = []; renderAtts();
+    const mention = /^@(\S+)\s*/.exec(text);
+    const mName = mention && mention[1].replace(/[，。,.!！?？:：]+$/, '');
+    const isAll = !!mName && (mName === '所有人' || /^all$/i.test(mName)); // @所有人: 全能先答, 参与成员随后按序各答一轮
+    const br = bridge();
+    try {
+      let target = null; // @点名(先全名后前缀, 歧义如实报) 或 双击锁定连聊直达; @全能/无@ → 引擎
+      if (mention && !isAll && br && br.resolveMember && !/^全能/.test(mName)) { // @全能* 归引擎; 精确前缀判断(旧 includes('全能agent') 会误伤名字含该子串的成员如"agent")
+        const r = await br.resolveMember(curSession, mName); // @名字→参与成员解析归桥(独立页共用同一份语义)
+        if (r.candidates) {
+          appendMsg('系统', '@' + mName + ' 匹配到多个成员: ' + r.candidates.map(m => m.name + '(' + String(m.id).slice(0, 6) + ')').join(' / ') + ' — 用全名再发', 'assistant');
+          idle(); return;
+        }
+        if (r.excluded) {
+          appendMsg('系统', '「' + r.excluded.name + '」已退出群聊 — 点上方胶囊拉回再@', 'assistant');
+          idle(); return;
+        }
+        target = r.member || null;
+      }
+      if (!target && !mention && br && lockTarget) { // 双击锁定连聊: 无@每条直达
+        target = (await br.allOnlineMembers()).find(m => m.id === lockTarget.id) || null;
+        if (!target) { appendMsg('系统', '「' + lockTarget.name + '」当前不在线, 已解除锁定 — 消息未发出', 'assistant'); lockTarget = null; _inputPlaceholder(); renderAtRow(); idle(); return; }
+      }
+      if (target) {
+        if (typeof content !== 'string') appendStep('📎 附件只有全能 agent 能收, 群聊成员只收到文字');
+        return sendToMember(target, text);
+      }
+      /* 无 @ → 全能 agent 应答(常驻兜底); 用户这条经引擎 push user(带 ts)进房间记录, 成员轮到发言时经 delta 看得到 */
+      /* 内置 agent 需要大脑(bridge 成员则不需要 — 任一接入即可群聊) */
+      const L = await llm(); let brain = await S.get('agent.brain', {});
+      if (L.lite && !brain.providerId) { const lc = await Lite.cfg(); if (lc.endpoint && lc.key) { brain = { providerId: 'llmlite', model: lc.model }; await S.set('agent.brain', brain); } } // 兜底已配(可能经 kv 直配): 自动认作大脑
+      if (!brain.providerId) {
+        if (isAll && br && br.participants && br.participants(curSession).length) { // @所有人在全能缺脑时也让成员轮答(群聊不因缺脑而废)
+          try { await appendHist(curSession, { role: 'user', content: text, ts: _tsNow() }); } catch (e2) { }
+          appendMsg('你', text, 'user');
+          appendMsg('系统', '全能 agent 无大脑, 由成员按顺序接话', 'assistant');
+          for (const m of br.participants(curSession)) { if (_stop) break; await askMember(m); }
+          await renderTranscript(true);
+          idle(); maybeRelay(); return; // 与有脑分支一致: 互动开着则续轮
+        }
+        const hasBridge = br && (await (br.listBridges ? br.listBridges() : Promise.resolve([]))).length;
+        appendMsg('系统', '内置全能 agent 还没有大脑: 有 AI 配置块就点亮框填 Key 并拉取模型; 没有就在上方大脑区点 ⚙ 配置 LLMLite 兜底(endpoint/key/model)。' + (hasBridge ? ' (你也可以直接 @ 某个 bridge 成员对话, 不需要大脑)' : ''), 'assistant');
+        idle(); return;
+      }
+      // 事实源: 持久消息(user/assistant/trace, 全带 turnId)以共享 _histCache 为准; _streamAnswer 是最终回答的非持久 UI 暂态(不入 hist, 不进上下文)。
+      const { live: paintLive, flush } = mkPainter();   // 节流三件套共享自 mkPainter(与互动接话同源)
+      for await (const ev of engine(content, brain, () => paintLive(), _histCache)) {
+        if (ev.type === 'turn-start') { fabSay('🧠 思考中…'); flush(); }
+        else if (ev.type === 'paint') { if (ev.summary) fabSay(ev.summary, true); else fabSay('🧠 working…'); flush(); }
+        else if (ev.type === 'final') { flush(); fabSay('✓ 完成', true); }
+        else if (ev.type === 'ctx') paintCtx(ev);
+        else if (ev.type === 'error') { flush(); fabSay('✗ 出错', true); }
+      }
+      flush();
+      fabSay('✓ 完成', true);
+      if (isAll && br && br.participants) { // @所有人: 全能已答(上方引擎), 参与成员按顺序接话(delta 让后答的看到先答的)
+        for (const m of br.participants(curSession)) { if (_stop) break; await askMember(m); }
+        await renderTranscript(true);
+      }
+    } catch (e) { appendMsg('系统', '✗ ' + e.message, 'assistant'); }
+    idle();
+    maybeRelay(); // 无@全能答完 / @所有人一轮后, 互动开着则继续按序轮流接话到 limit
+  }
+  $('agent-send').onclick = send;
+  ctx.listen($('agent-input'), 'keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } });
+
+  async function blobToWav16k(blob) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ac = new AC();
+    const buf = await ac.decodeAudioData(await blob.arrayBuffer());
+    const rate = 16000, len = Math.ceil(buf.duration * rate);
+    const oc = new OfflineAudioContext(1, len, rate);
+    const srcN = oc.createBufferSource(); srcN.buffer = buf; srcN.connect(oc.destination); srcN.start();
+    const out = await oc.startRendering(); ac.close();
+    const pcm = out.getChannelData(0);
+    const wav = new DataView(new ArrayBuffer(44 + pcm.length * 2));
+    const wr = (o, s) => { for (let i = 0; i < s.length; i++) wav.setUint8(o + i, s.charCodeAt(i)); };
+    wr(0, 'RIFF'); wav.setUint32(4, 36 + pcm.length * 2, true); wr(8, 'WAVEfmt '); wav.setUint32(16, 16, true);
+    wav.setUint16(20, 1, true); wav.setUint16(22, 1, true); wav.setUint32(24, rate, true); wav.setUint32(28, rate * 2, true);
+    wav.setUint16(32, 2, true); wav.setUint16(34, 16, true); wr(36, 'data'); wav.setUint32(40, pcm.length * 2, true);
+    for (let i = 0; i < pcm.length; i++) { const s = Math.max(-1, Math.min(1, pcm[i])); wav.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true); }
+    let bin = ''; const u8 = new Uint8Array(wav.buffer); const CH = 0x8000;
+    for (let i = 0; i < u8.length; i += CH) bin += String.fromCharCode.apply(null, u8.subarray(i, i + CH));
+    return { data: btoa(bin), mimeType: 'audio/wav' };
+  }
+  /* ════ 语音输入(一次授权终身复用) ════ */
+  let micStream = null, recorder = null, chunks = [];
+  $('agent-voice').onclick = async () => {
+    const btn = $('agent-voice');
+    if (recorder && recorder.state === 'recording') { recorder.stop(); return; }
+    try {
+      if (!micStream || !micStream.active) micStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      else micStream.getTracks().forEach(t => t.enabled = true);
+      chunks = []; recorder = new MediaRecorder(micStream);
+      recorder.ondataavailable = e => chunks.push(e.data);
+      recorder.onstop = async () => {
+        btn.classList.remove('recording'); btn.textContent = '…';
+        micStream.getTracks().forEach(t => t.enabled = false);
+        const blob = new Blob(chunks, { type: recorder.mimeType || 'audio/webm' });
+        const b64 = await toB64(blob);
+        try {
+          const v = await resolveVoicePrefs();
+          if (!v._hasSTT) throw new Error('转写需要一个声明了听觉(audio.transcribe)能力的已配 Key 厂商 — 去 ⚙ AI 配置添加');
+          const wav = await blobToWav16k(blob).catch(() => null); // 统一转 16k 单声道 WAV, 提高各家兼容性
+          const audio = wav || { data: b64, mimeType: blob.type };
+          const r = await (await llm()).transcribeAudio({ providerId: v.sttProviderId, ...(v.sttModel ? { model: v.sttModel } : {}), audio });
+          $('agent-input').value += (r && r.text || '');
+        } catch (e) { alert('转写失败: ' + e.message); }
+        btn.textContent = '🎤';
+      };
+      recorder.start(); btn.classList.add('recording'); btn.textContent = '⏹';
+    } catch (e) { alert('麦克风不可用: ' + e.message); }
+  };
+
+  loadSessions();
+  ctx.timer(() => { const u = ui(); if (u && u.registerBlockPage) u.registerBlockPage(ctx.id, () => applyDock(true)); }, 30);
+  ctx.provide('agent', { send: t => { $('agent-input').value = t || ''; return send(); }, prim, openDock: () => applyDock(true) });
+  ctx.on('workflow:bg-done', async ev => { // 后台工作流(detach)收口: 完成/失败冒泡进对话 — appendMsg 显示([[show]]自动渲染) + appendHist 入档(防 busy 期被引擎 persist 覆盖)
+    try {
+      const outs = (ev && ev.outputs) || {};
+      const pickShow = v => { // 挖出可展示地址: 裸key / 顶层{__wfasset} / 节点输出把媒体挂在 .media|.image|.audio|.video 端口(grow/多节点图会嵌一层)
+        if (!v) return null;
+        if (typeof v === 'string') return /^(wfout|wfasset|media|chatasset|runtimeshot):/.test(v) ? v : null;
+        if (typeof v !== 'object') return null;
+        if (v.__wfasset) return 'wfasset:' + v.__wfasset;
+        return pickShow(v.media) || pickShow(v.image) || pickShow(v.audio) || pickShow(v.video);
+      };
+      const shows = Object.values(outs).map(pickShow).filter(Boolean).slice(0, 3);
+      const nOuts = Object.values(outs).filter(v => v != null && v !== '').length; // 空端口(如空text)不计, 别报"2项"却只有1个能看
+      const pickText = v => (typeof v === 'string' && v.trim() && !pickShow(v)) ? v : (v && typeof v === 'object' && typeof v.text === 'string' && v.text.trim() ? v.text : null);
+      const txt = Object.values(outs).map(pickText).filter(Boolean)[0]; // 纯文本成果给一句预览: 媒体有[[show]]内联, 文本不能只报"N项"却啥都看不见
+      const msg = (ev && ev.status === 'done' ? '✅ 后台工作流「' + ((ev && ev.name) || '') + '」完成' : '⚠ 后台工作流「' + ((ev && ev.name) || '') + '」失败: ' + String(((ev && ev.errors) || [])[0] || '').slice(0, 120))
+        + (nOuts ? ' · 成果 ' + nOuts + ' 项' : '') + shows.map(k => ' [[show:' + k + ']]').join('')
+        + (txt ? '\n「' + txt.trim().slice(0, 160) + (txt.trim().length > 160 ? '…' : '') + '」' : '')
+        + ((ev && ev.notes && ev.notes.length) ? '\n' + ev.notes.slice(0, 3).join('\n') : ''); // 智选替换厂商等告知透传(后台不静默顶包)
+      const rid = (ev && ev.runId) || '';
+      const sess = _bgSess[rid] || curSession; delete _bgSess[rid]; // 按 runId 精确回发起会话(不是完成时恰好在看的会话)
+      await appendHist(sess, { role: 'assistant', content: msg, ts: _tsNow() });
+      if (sess === curSession) {
+        appendMsg('工作流', msg, 'assistant');
+        if (busy) { _interrupts.push(BG_RECEIPT + ' ' + msg); if (_turnAbort) { try { _turnAbort.abort(); } catch (e2) { } } } // 在途轮注入真结果: 大脑看到冒泡才收尾——根治"结果在上下文之外, 看不到就编"(弱脑事后瞎总结/捏造资产id)
+      }
+      else dockStatus('✅ 后台工作流「' + ((ev && ev.name) || '') + '」已完成 — 结果在发起它的会话里'); // 人在别的会话: 轻提示不打断
+    } catch (e) { console.warn('[agent] 后台回执处理失败(不再无声):', e); }
+  });
+  ctx.on('agent:ask', p => { // 选中即问(代码解读的选段/ui-shell 的点选元素等任何块都可发此事件, kind 透传; 本块不在岗自然无人接 — 松耦合)
+    try {
+      const dock = document.getElementById('agent-dock'); if (!dock) return;
+      dock.classList.remove('collapsed'); dock.classList.add('expanded');
+      pendingAtts.push({ kind: (p && p.kind) || 'coderef', name: ((p && p.name) || (p && p.ref) || '代码引用').slice(0, 60), ref: (p && p.ref) || '', text: (p && p.text) || '' });
+      renderAtts();
+      const inp = document.getElementById('agent-input'); if (inp) inp.focus();
+    } catch (e) { }
+  });
+
+  return { api: { prim }, dispose() { if (micStream) micStream.getTracks().forEach(t => t.stop()); } };
+})
+</script>
+<script data-stem-shim="1">(function(){
+var SCR="scr"+"ipt";
+var re=new RegExp("<"+SCR+"\\s+type=\"colony/petri\"[^>]*>([\\s\\S]*?)</"+SCR+">");
+var m=re.exec(document.documentElement.outerHTML); if(!m){document.body.textContent="未找到块";return;}
+var hd=/\/\*BLOCK\*\/([\s\S]*?)\/\*CODE\*\//.exec(m[1]);
+var man=JSON.parse(hd[1].trim()); var code=m[1].slice(hd.index+hd[0].length);
+var pre="petri.solo."+man.id+":";
+var root=document.createElement("div"); root.setAttribute("data-block-id",man.id); document.body.appendChild(root);
+
+var ctx={ id:man.id, root:root,
+ css:function(t){var s=document.createElement("style");s.textContent=t;document.head.appendChild(s);},
+ listen:function(t,e,f){t.addEventListener(e,f);}, timer:function(f,ms,rep){return rep?setInterval(f,ms):setTimeout(f,
+ms);},
+ store:{ get:async function(k){var v=localStorage.getItem(pre+k);return v==null?undefined:JSON.parse(v);}, set:async function(k,
+v){localStorage.setItem(pre+k,JSON.stringify(v));}, del:async function(k){localStorage.removeItem(pre+k);}, list:async function(p){var o=[];
+for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key.indexOf(pre+(p||""))===0)o.push({key:key.slice(pre.length),
+value:JSON.parse(localStorage.getItem(key))});}return o;} },
+ kv:{ get:async function(k){var v=localStorage.getItem(pre+"kv:"+k);return v==null?undefined:JSON.parse(v);}, set:async function(k,
+v){localStorage.setItem(pre+"kv:"+k,JSON.stringify(v));}, del:async function(k){localStorage.removeItem(pre+"kv:"+k);
+}, list:async function(p){var o=[];for(var i=0;i<localStorage.length;i++){var key=localStorage.key(i);if(key.indexOf(pre+"kv:"+(p||""))===0)o.push({key:key.slice((pre+"kv:").length),
+value:JSON.parse(localStorage.getItem(key))});}return o;} },
+ service:function(){return null;}, provide:function(){}, call:function(){throw new Error("独立模式无他块");},
+ on:function(){}, emit:function(){},
+ stem:{ hash:"solo", lineage:{gen:"独立"},
+  listBlocks:function(){return [{id:man.id,name:man.name,version:man.version,category:man.category,dirty:false,disabled:false}];
+},
+  getBlock:function(id){return id===man.id?{manifest:man,code:code,dirty:false}:null;},
+  readSource:function(){return document.documentElement.outerHTML;},
+  saveBlock:function(){return Promise.reject(new Error("独立模式只读, 导入回 Colony 后可改"));},
+  restoreFactory:function(){return Promise.resolve();}, setEnabled:function(){return Promise.resolve();},
+  molt:function(){throw new Error("独立 Petri 无新生能力, 导入回 Colony");}, wrapBlock:function(){},
+  unwrap:function(){return [];},
+  download:function(n,c){var u=URL.createObjectURL(new Blob([c],{type:"text/html;charset=utf-8"}));var a=document.createElement("a");
+a.href=u;a.download=n;document.body.appendChild(a);a.click();setTimeout(function(){a.remove();URL.revokeObjectURL(u);
+},100);} },
+ runtime:null, sdk:{handle:function(){},handleStream:function(){}} };
+document.title=(man.name||man.id)+" · Colony Petri";
+try{ (0,eval)(code)(ctx); }catch(e){ root.textContent="块启动失败: "+e.message; }
+})();</script>
+</body>
+</html>
