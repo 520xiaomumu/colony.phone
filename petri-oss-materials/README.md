@@ -23,7 +23,7 @@
 
 ## 总报告
 
-见 **[SUMMARY.md](./SUMMARY.md)**（汇总）与 **[VOLUME_AND_ABSORBABLE.md](./VOLUME_AND_ABSORBABLE.md)**（每块 ≥10 个 A 级可吸收项 + KB 体积估算 + Hermes 生态）。
+见 **[SUMMARY.md](./SUMMARY.md)**（汇总）、**[VOLUME_AND_ABSORBABLE.md](./VOLUME_AND_ABSORBABLE.md)**（体积粗估）、**[REALITY_CHECK.md](./REALITY_CHECK.md)**（**对照现有 Petri 源码：已有 vs 真净增 vs 可粘贴文件**）。
 
 Hermes 插件/技能生态专柜：`[00-hermes-ecosystem/](./00-hermes-ecosystem/)`。
 

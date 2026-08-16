@@ -1,6 +1,6 @@
-/* MATERIAL source=https://github.com/Aider-AI/aider/blob/main/aider/repomap.py
- * stars=48246 note=repo map 源码
- * Colony petri-oss-materials research snapshot; upstream license applies
+/* NET-NEW? 净增:repomap(已有)
+ * source: https://github.com/Aider-AI/aider/blob/main/aider/repomap.py
+ * stars: 48254 bytes: 27306
  */
 
 import colorsys

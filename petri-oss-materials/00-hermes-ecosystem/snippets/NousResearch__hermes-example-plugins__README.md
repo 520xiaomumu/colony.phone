@@ -1,4 +1,4 @@
-<!-- MATERIAL https://github.com/NousResearch/hermes-example-plugins ★33 -->
+<!-- MATERIAL https://github.com/NousResearch/hermes-example-plugins/blob/main/README.md ★34 -->
 
 # hermes-example-plugins
 

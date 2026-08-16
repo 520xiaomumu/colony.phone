@@ -1,6 +1,6 @@
-/* MATERIAL source=https://github.com/Comfy-Org/ComfyUI/blob/master/execution.py
- * stars=127750 note=节点执行引擎源码
- * Colony petri-oss-materials research snapshot; upstream license applies
+/* NET-NEW? 净增对照:执行引擎(已有)
+ * source: https://github.com/Comfy-Org/ComfyUI/blob/master/execution.py
+ * stars: 127820 bytes: 61517
  */
 
 import copy

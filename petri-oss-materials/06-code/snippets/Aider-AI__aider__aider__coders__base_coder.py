@@ -1,6 +1,6 @@
-/* MATERIAL source=https://github.com/Aider-AI/aider/blob/main/aider/coders/base_coder.py
- * stars=48246 note=coder 基类
- * Colony petri-oss-materials research snapshot; upstream license applies
+/* NET-NEW? 净增:coder(已有)
+ * source: https://github.com/Aider-AI/aider/blob/main/aider/coders/base_coder.py
+ * stars: 48254 bytes: 86302
  */
 
 #!/usr/bin/env python

@@ -1,6 +1,6 @@
-/* MATERIAL source=https://github.com/huggingface/smolagents/blob/main/src/smolagents/agents.py
- * stars=28815 note=agents.py 核心循环源码
- * Colony petri-oss-materials research snapshot; upstream license applies
+/* NET-NEW? 对照:已有能力/仅借鉴结构
+ * source: https://github.com/huggingface/smolagents/blob/main/src/smolagents/agents.py
+ * stars: 28816 bytes: 80780
  */
 
 #!/usr/bin/env python

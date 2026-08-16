@@ -1,6 +1,6 @@
-/* MATERIAL source=https://github.com/violentmonkey/violentmonkey/blob/master/src/injected/content/inject.js
- * stars=8740 note=内容脚本注入
- * Colony petri-oss-materials research snapshot; upstream license applies
+/* NET-NEW? 净增:注入(已有则覆盖确认)
+ * source: https://github.com/violentmonkey/violentmonkey/blob/master/src/injected/content/inject.js
+ * stars: 8743 bytes: 14641
  */
 
 import { bindEvents, CONSOLE_METHODS, fireBridgeEvent, META_STR } from '../util';
